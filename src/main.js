@@ -1,0 +1,43 @@
+import { GAME_WIDTH, GAME_HEIGHT } from './config/gameConfig.js';
+import { BootScene } from './scenes/BootScene.js';
+import { PreloadScene } from './scenes/PreloadScene.js';
+import { HomeScene } from './scenes/HomeScene.js';
+import { TutorialScene } from './scenes/TutorialScene.js';
+import { GameScene } from './scenes/GameScene.js';
+import { GameOverScene } from './scenes/GameOverScene.js';
+
+const config = {
+  type: Phaser.AUTO,
+  parent: 'game-container',
+  width: GAME_WIDTH,
+  height: GAME_HEIGHT,
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH
+  },
+  physics: {
+    default: 'arcade',
+    arcade: {
+      gravity: { y: 0 },
+      debug: false
+    }
+  },
+  fps: {
+    target: 60,
+    forceSetTimeOut: true
+  },
+  backgroundColor: '#2D1452',
+  scene: [
+    BootScene,
+    PreloadScene,
+    HomeScene,
+    TutorialScene,
+    GameScene,
+    GameOverScene
+  ]
+};
+
+window.addEventListener('load', () => {
+  const game = new Phaser.Game(config);
+  window.__gemFeederGame = game;
+});

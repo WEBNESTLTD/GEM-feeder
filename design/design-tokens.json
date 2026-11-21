@@ -1,0 +1,89 @@
+{
+  "designSize": {
+    "width": 390,
+    "height": 844,
+    "note": "Layout reference. Build at 2x: 780x1688 with Scale.FIT."
+  },
+  "font": {
+    "family": "Fredoka",
+    "weights": [
+      500,
+      600,
+      700
+    ],
+    "fallback": "system-ui, sans-serif"
+  },
+  "colors": {
+    "ink": "#4B1F86",
+    "inkSoft": "#6B5A86",
+    "pink": "#D81B7A",
+    "pinkDark": "#9C0F56",
+    "yellow": "#FFD93D",
+    "yellowDark": "#D9AE00",
+    "lavender": "#F3E6FF",
+    "blush": "#FFE9F3",
+    "cream": "#FFF3D6",
+    "white": "#FFFFFF",
+    "shadow": "#E3D0F5",
+    "packetPurple": "#6B2FB3",
+    "packetDark": "#3E1675",
+    "heart": "#E8325F"
+  },
+  "background": {
+    "type": "vertical-gradient",
+    "stops": [
+      [
+        "#F3E6FF",
+        0
+      ],
+      [
+        "#FFE9F3",
+        0.55
+      ],
+      [
+        "#FFF3D6",
+        1
+      ]
+    ]
+  },
+  "candies": {
+    "red": {
+      "fill": "#F0364B",
+      "stroke": "#A5142A"
+    },
+    "yellow": {
+      "fill": "#FFD93D",
+      "stroke": "#B8900A"
+    },
+    "green": {
+      "fill": "#38C964",
+      "stroke": "#17803A"
+    },
+    "blue": {
+      "fill": "#3D8BFF",
+      "stroke": "#1B4FB0"
+    },
+    "purple": {
+      "fill": "#9B5DE5",
+      "stroke": "#5B2BA0"
+    },
+    "orange": {
+      "fill": "#FF8A2B",
+      "stroke": "#B84E00"
+    },
+    "pink": {
+      "fill": "#FF5CAA",
+      "stroke": "#B8266E"
+    }
+  },
+  "radii": {
+    "card": 20,
+    "pill": 999,
+    "playButton": 36,
+    "smallButton": 28
+  },
+  "shadows": {
+    "card": "0 4px 0 #E3D0F5",
+    "playButton": "0 6px 0 #9C0F56"
+  }
+}
