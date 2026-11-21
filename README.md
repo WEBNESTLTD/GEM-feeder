@@ -6,16 +6,25 @@ A casual 2D candy-throwing browser game built with **Phaser.js 3.90**, **HTML5/C
 
 ## 🎮 Gameplay Overview
 
-- **Aim & Flick:** Touch/click the active candy above the bottom candy packet, drag upward toward the character's open mouth, and release to throw.
+- **Aim & Flick / Slingshot:** Touch/click the active candy above the bottom candy packet, drag upward to flick forward OR pull down in Slingshot mode with an elastic rubber band.
+- **Trajectory Lock:** Dashed prediction arc turns luminous green when aligned for a direct bullseye hit into the character's mouth.
 - **Scoring:**
   - Normal Hit: **+10 points**
-  - Perfect Hit (direct bullseye): **+15 points**
+  - Perfect Hit (direct bullseye): **+15 points** with character celebration hop and gold sparkle burst.
 - **Combos:**
   - 3 Consecutive Hits: **x2 Multiplier**
   - 5 Consecutive Hits: **x3 Multiplier**
   - 10+ Consecutive Hits: **x4 Multiplier**
+- **Dynamic Feedback & Juice:**
+  - Ambient bokeh dust motes in the background.
+  - Interactive head and eye tracking toward your aim coordinate.
+  - Proportional candy rotation and stretch-and-squash on launch.
+  - Multi-tier haptic vibration pulses (throw, hit, perfect, miss) with settings toggle.
+  - Crunchy munch chewing sound effect on candy catch.
+  - Animated score roll-up counter on the Game Over screen.
+  - Native Web Share API integration to challenge friends.
 - **Lives:** You start with 3 hearts. Each miss resets your combo and removes 1 heart. Game over occurs at 0 hearts.
-- **High Scores:** High scores persist automatically across sessions in `localStorage`.
+- **High Scores & Settings:** High scores, sound FX, music, and vibration preferences persist automatically in `localStorage`.
 
 ---
 

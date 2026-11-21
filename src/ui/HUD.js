@@ -188,16 +188,32 @@ export class HUD extends Phaser.GameObjects.Container {
     }
     this.comboText.setText(`COMBO x${multiplier}`);
     this.comboContainer.setAlpha(1);
-    this.comboContainer.setScale(1.25);
+    this.comboContainer.setScale(1.35);
+
+    this.scene.tweens.killTweensOf(this.comboContainer);
     this.scene.tweens.add({
       targets: this.comboContainer,
       scale: 1,
-      duration: 180,
-      ease: 'Back.easeOut'
+      duration: 220,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // Continuous subtle pulsing when high combo is active
+        if (multiplier >= 3) {
+          this.scene.tweens.add({
+            targets: this.comboContainer,
+            scale: 1.08,
+            duration: 400,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+          });
+        }
+      }
     });
   }
 
   hideCombo() {
+    this.scene.tweens.killTweensOf(this.comboContainer);
     this.comboContainer.setAlpha(0);
   }
 
@@ -308,5 +324,15 @@ export class HUD extends Phaser.GameObjects.Container {
   updateScore(score, highScore) {
     this.scoreValueText.setText(score.toLocaleString());
     this.highScoreText.setText(`Best ${highScore.toLocaleString()}`);
+
+    // Micro punch animation for score feedback
+    this.scene.tweens.killTweensOf(this.scoreValueText);
+    this.scoreValueText.setScale(1.18);
+    this.scene.tweens.add({
+      targets: this.scoreValueText,
+      scale: 1,
+      duration: 160,
+      ease: 'Back.easeOut'
+    });
   }
 }

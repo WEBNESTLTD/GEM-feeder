@@ -8,22 +8,24 @@ export class SaveManager {
 
   load() {
     if (!this.storage) {
-      return { highScore: 0, soundEnabled: true, musicEnabled: true };
+      return { highScore: 0, soundEnabled: true, musicEnabled: true, vibrationEnabled: true, reducedMotion: false };
     }
 
     try {
       const raw = this.storage.getItem(STORAGE_KEY);
       if (!raw) {
-        return { highScore: 0, soundEnabled: true, musicEnabled: true };
+        return { highScore: 0, soundEnabled: true, musicEnabled: true, vibrationEnabled: true, reducedMotion: false };
       }
       const parsed = JSON.parse(raw);
       return {
         highScore: Number(parsed.highScore) || 0,
         soundEnabled: parsed.soundEnabled !== false,
-        musicEnabled: parsed.musicEnabled !== false
+        musicEnabled: parsed.musicEnabled !== false,
+        vibrationEnabled: parsed.vibrationEnabled !== false,
+        reducedMotion: Boolean(parsed.reducedMotion)
       };
     } catch {
-      return { highScore: 0, soundEnabled: true, musicEnabled: true };
+      return { highScore: 0, soundEnabled: true, musicEnabled: true, vibrationEnabled: true, reducedMotion: false };
     }
   }
 
@@ -64,6 +66,24 @@ export class SaveManager {
 
   setMusicEnabled(enabled) {
     this.state.musicEnabled = Boolean(enabled);
+    this.save();
+  }
+
+  getVibrationEnabled() {
+    return this.state.vibrationEnabled;
+  }
+
+  setVibrationEnabled(enabled) {
+    this.state.vibrationEnabled = Boolean(enabled);
+    this.save();
+  }
+
+  getReducedMotion() {
+    return this.state.reducedMotion;
+  }
+
+  setReducedMotion(enabled) {
+    this.state.reducedMotion = Boolean(enabled);
     this.save();
   }
 }

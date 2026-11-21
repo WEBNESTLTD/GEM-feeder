@@ -101,6 +101,23 @@ export class TutorialScene extends Phaser.Scene {
       wordWrap: { width: 220 }
     });
     container.add(desc);
+
+    // Animated swipe arrow on step 2
+    if (step.num === '2') {
+      const swipeDot = this.add.graphics();
+      swipeDot.fillStyle(0x3D8BFF, 0.9);
+      swipeDot.fillCircle(120, 25, 8);
+      container.add(swipeDot);
+
+      this.tweens.add({
+        targets: swipeDot,
+        y: -15,
+        alpha: { from: 1, to: 0.2 },
+        duration: 900,
+        repeat: -1,
+        ease: 'Cubic.easeOut'
+      });
+    }
   }
 
   createStartButton() {

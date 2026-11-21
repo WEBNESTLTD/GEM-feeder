@@ -30,6 +30,24 @@ export class Candy extends Phaser.GameObjects.Container {
 
     this.body.setAllowGravity(false);
     this.body.setCircle(26, -26, -26);
+
+    // Visual squash and stretch state
+    this.targetScaleX = 1;
+    this.targetScaleY = 1;
+  }
+
+  setSquash(scaleX, scaleY) {
+    this.sprite.setScale(scaleX, scaleY);
+  }
+
+  resetSquash() {
+    this.scene.tweens.add({
+      targets: this.sprite,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 140,
+      ease: 'Back.easeOut'
+    });
   }
 
   launch(vx, vy) {
@@ -40,13 +58,23 @@ export class Candy extends Phaser.GameObjects.Container {
       this.idleTween.stop();
     }
 
+    // Launch stretch burst
+    this.sprite.setScale(0.85, 1.25);
+    this.scene.tweens.add({
+      targets: this.sprite,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 220,
+      ease: 'Quad.easeOut'
+    });
+
     this.body.setAllowGravity(true);
     // Consistent standard gravity across all regular candies
     this.body.setGravityY(PHYSICS.GRAVITY_Y);
     this.body.setVelocity(vx, vy);
 
-    // Dynamic rotation during flight
-    const rotationSpeed = (vx >= 0 ? 1 : -1) * Phaser.Math.Between(260, 480);
+    // Dynamic rotation during flight proportional to velocity
+    const rotationSpeed = (vx >= 0 ? 1 : -1) * Phaser.Math.Clamp(Math.abs(vx) * 0.5 + 260, 260, 600);
     this.rotationTween = this.scene.tweens.add({
       targets: this.sprite,
       angle: rotationSpeed,

@@ -147,13 +147,27 @@ export class GameOverScene extends Phaser.Scene {
     }).setOrigin(0.5);
     card.add(scoreLabel);
 
-    const scoreVal = this.add.text(0, -42, finalScore.toLocaleString(), {
+    const scoreVal = this.add.text(0, -42, finalScore > 0 ? '0' : '0', {
       fontFamily: 'Fredoka, sans-serif',
       fontSize: '44px',
       fontWeight: '700',
       color: COLORS.pink
     }).setOrigin(0.5);
     card.add(scoreVal);
+
+    // Score roll-up counter animation
+    if (finalScore > 0) {
+      const counterObj = { val: 0 };
+      this.tweens.add({
+        targets: counterObj,
+        val: finalScore,
+        duration: 900,
+        ease: 'Cubic.easeOut',
+        onUpdate: () => {
+          scoreVal.setText(Math.round(counterObj.val).toLocaleString());
+        }
+      });
+    }
 
     // Divider line
     const div = this.add.graphics();

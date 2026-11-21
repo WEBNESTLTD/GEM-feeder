@@ -29,9 +29,16 @@ export class InputManager {
     const clampedDistance = Math.min(Math.max(distance, this.minDragDistance), this.maxDragDistance);
     const effectiveDuration = Math.max(durationMs, 50);
 
-    // Base speed influenced by distance and swipe velocity
-    const swipeSpeed = (clampedDistance / effectiveDuration) * 1000 * (this.velocityMultiplier * 0.15);
-    const rawSpeed = Math.min(Math.max(swipeSpeed, this.minVelocity), this.maxVelocity);
+    // In slingshot pull-back mode, launch speed is governed by elastic pull distance (tension)
+    // In forward-flick mode, speed is governed by swipe velocity (distance / time)
+    let rawSpeed;
+    if (isSlingshot) {
+      const tensionRatio = (clampedDistance - this.minDragDistance) / (this.maxDragDistance - this.minDragDistance);
+      rawSpeed = this.minVelocity + tensionRatio * (this.maxVelocity - this.minVelocity);
+    } else {
+      const swipeSpeed = (clampedDistance / effectiveDuration) * 1000 * (this.velocityMultiplier * 0.15);
+      rawSpeed = Math.min(Math.max(swipeSpeed, this.minVelocity), this.maxVelocity);
+    }
 
     const angle = Math.atan2(dy, dx);
     const vx = Math.cos(angle) * rawSpeed;

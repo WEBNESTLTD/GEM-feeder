@@ -120,6 +120,29 @@ export class HomeScene extends Phaser.Scene {
       strokeThickness: 8
     }).setOrigin(0.5);
     logoContainer.add(feederText);
+
+    // Decorative sparkle stars
+    const star1 = this.add.text(-120, -35, '✦', {
+      fontSize: '28px',
+      color: '#FFD93D'
+    }).setOrigin(0.5);
+    logoContainer.add(star1);
+
+    const star2 = this.add.text(125, 25, '✦', {
+      fontSize: '24px',
+      color: '#FFFFFF'
+    }).setOrigin(0.5);
+    logoContainer.add(star2);
+
+    this.tweens.add({
+      targets: [star1, star2],
+      scale: 1.3,
+      alpha: 0.6,
+      duration: 700,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
   }
 
   createPlayButton() {
@@ -149,6 +172,17 @@ export class HomeScene extends Phaser.Scene {
 
     btn.setSize(280, 72);
     btn.setInteractive({ useHandCursor: true });
+
+    // Subtle breathing pulse on Play button
+    this.tweens.add({
+      targets: btn,
+      scale: 1.035,
+      duration: 1000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
     btn.on('pointerdown', () => {
       audioManager.playButtonClick();
       audioManager.startBGM();

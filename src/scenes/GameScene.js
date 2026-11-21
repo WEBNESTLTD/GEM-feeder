@@ -94,6 +94,9 @@ export class GameScene extends Phaser.Scene {
     // Particles group for hit celebrations and trails
     this.trailGroup = this.add.group();
 
+    // Ambient floating dust particles
+    this.createAmbientParticles();
+
     // 7. Spawn Initial Candy
     this.spawnNextCandy();
 
@@ -153,6 +156,11 @@ export class GameScene extends Phaser.Scene {
       this.slingGraphics.clear();
       this.character.resetToIdle();
 
+      const readyCandy = this.spawner.getActiveCandy();
+      if (readyCandy) {
+        readyCandy.resetSquash();
+      }
+
       if (this.isPaused || this.isGameOver || this.activeFlyingCandy) return;
 
       const candy = this.spawner.getActiveCandy();
@@ -170,10 +178,7 @@ export class GameScene extends Phaser.Scene {
       // Launch candy using unified calculation
       if (throwData.isValid && throwData.vy < -50) {
         this.launchActiveCandy(candy, throwData.vx, throwData.vy);
-        // Haptic feedback pulse on throw release
-        if (typeof navigator !== 'undefined' && navigator.vibrate) {
-          try { navigator.vibrate(25); } catch {}
-        }
+        audioManager.triggerHaptic(25);
       }
     });
   }
@@ -193,6 +198,11 @@ export class GameScene extends Phaser.Scene {
       currentY,
       durationMs: duration
     });
+
+    // Squash candy slightly along pull distance
+    const dragDist = Math.hypot(currentX - startX, currentY - startY);
+    const squashFactor = Math.min(0.2, dragDist / 350);
+    candy.setSquash(1 + squashFactor * 0.35, 1 - squashFactor * 0.5);
 
     // If pulling down in slingshot mode, draw visible elastic rubber band
     if (throwData.isSlingshot) {
@@ -322,9 +332,11 @@ export class GameScene extends Phaser.Scene {
 
     candy.consume();
 
-    // Haptic feedback for successful catch: crisp double-tap
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      try { navigator.vibrate([35, 40, 45]); } catch {}
+    // Haptic feedback for successful catch
+    if (isPerfect) {
+      audioManager.triggerHaptic([45, 50, 60]);
+    } else {
+      audioManager.triggerHaptic([35, 40]);
     }
 
     // Crunchy munch chewing sound
@@ -343,8 +355,12 @@ export class GameScene extends Phaser.Scene {
 
     this.hud.updateScore(this.scoreManager.getScore(), this.scoreManager.getHighScore());
 
-    // Character eating animation
-    this.character.playEatingAnimation();
+    // Character eating or celebration animation
+    if (isPerfect) {
+      this.character.playCelebrationAnimation();
+    } else {
+      this.character.playEatingAnimation();
+    }
 
     // Audio & Visual popups
     if (isPerfect) {
@@ -360,13 +376,14 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Spawn celebration particle burst
-    this.spawnHitParticles(candy.x, candy.y, candy.candyData.color);
+    this.spawnHitParticles(candy.x, candy.y, candy.candyData.color, isPerfect);
 
     // Save high score if beaten
     saveManager.saveHighScore(this.scoreManager.getHighScore());
 
     // Spawn next candy after short delay
-    this.time.delayedCall(450, () => {
+    const spawnDelay = isPerfect ? 600 : 450;
+    this.time.delayedCall(spawnDelay, () => {
       if (!this.isGameOver && !this.isPaused) {
         this.spawnNextCandy();
       }
@@ -382,9 +399,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Haptic feedback for miss: heavy buzz
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      try { navigator.vibrate(120); } catch {}
-    }
+    audioManager.triggerHaptic(120);
 
     audioManager.playMiss();
     this.character.playMissReaction();
@@ -452,19 +467,21 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  spawnHitParticles(x, y, hexColor) {
-    const count = 12;
+  spawnHitParticles(x, y, hexColor, isPerfect = false) {
+    const count = isPerfect ? 24 : 14;
+    const colorVal = parseInt(hexColor.replace('#', '0x'), 16);
+
     for (let i = 0; i < count; i++) {
       const p = this.add.graphics();
-      const colorVal = parseInt(hexColor.replace('#', '0x'), 16);
-      p.fillStyle(colorVal, 1);
-      p.fillCircle(0, 0, Phaser.Math.Between(3, 7));
+      const isGoldSparkle = isPerfect && (i % 3 === 0);
+      p.fillStyle(isGoldSparkle ? 0xFFD93D : colorVal, 1);
+      p.fillCircle(0, 0, isGoldSparkle ? 7 : Phaser.Math.Between(3, 6));
       p.x = x;
       p.y = y;
       p.setDepth(40);
 
-      const angle = (i / count) * Math.PI * 2;
-      const speed = Phaser.Math.Between(80, 220);
+      const angle = (i / count) * Math.PI * 2 + Phaser.Math.FloatBetween(-0.2, 0.2);
+      const speed = isPerfect ? Phaser.Math.Between(100, 260) : Phaser.Math.Between(70, 190);
       const targetX = x + Math.cos(angle) * speed;
       const targetY = y + Math.sin(angle) * speed;
 
@@ -473,10 +490,33 @@ export class GameScene extends Phaser.Scene {
         x: targetX,
         y: targetY,
         alpha: 0,
-        scale: 0.2,
-        duration: Phaser.Math.Between(400, 650),
-        ease: 'Quad.easeOut',
+        scale: 0.15,
+        duration: Phaser.Math.Between(450, 750),
+        ease: 'Cubic.easeOut',
         onComplete: () => p.destroy()
+      });
+    }
+  }
+
+  createAmbientParticles() {
+    // Ambient floating dust motes for gentle atmospheric depth
+    for (let i = 0; i < 8; i++) {
+      const mote = this.add.graphics();
+      mote.fillStyle(0xFFFFFF, Phaser.Math.FloatBetween(0.2, 0.45));
+      mote.fillCircle(0, 0, Phaser.Math.Between(2, 4));
+      mote.x = Phaser.Math.Between(20, 370);
+      mote.y = Phaser.Math.Between(150, 750);
+      mote.setDepth(5);
+
+      this.tweens.add({
+        targets: mote,
+        y: mote.y - Phaser.Math.Between(60, 120),
+        x: mote.x + Phaser.Math.Between(-30, 30),
+        alpha: { from: mote.alpha, to: 0.05 },
+        duration: Phaser.Math.Between(3500, 6000),
+        repeat: -1,
+        yoyo: true,
+        ease: 'Sine.easeInOut'
       });
     }
   }

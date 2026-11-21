@@ -92,6 +92,19 @@ class SoundSynthesizer {
     });
   }
 
+  isVibrationEnabled() {
+    return saveManager.getVibrationEnabled();
+  }
+
+  triggerHaptic(pattern = 25) {
+    if (!this.isVibrationEnabled()) return;
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      try {
+        navigator.vibrate(pattern);
+      } catch {}
+    }
+  }
+
   playCrunch() {
     // Satisfying crunchy chew sound: filtered burst of textured noise/clicks
     if (!this.isSoundEnabled()) return;
@@ -101,18 +114,18 @@ class SoundSynthesizer {
     try {
       const t = this.ctx.currentTime;
       // Multi-tone micro bursts simulating munching
-      [180, 240, 160].forEach((freq, idx) => {
+      [220, 310, 190].forEach((freq, idx) => {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, t + idx * 0.05);
-        osc.frequency.exponentialRampToValueAtTime(80, t + idx * 0.05 + 0.04);
-        gain.gain.setValueAtTime(0.18, t + idx * 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.05 + 0.04);
+        osc.frequency.setValueAtTime(freq, t + idx * 0.045);
+        osc.frequency.exponentialRampToValueAtTime(70, t + idx * 0.045 + 0.04);
+        gain.gain.setValueAtTime(0.22, t + idx * 0.045);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.045 + 0.04);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
-        osc.start(t + idx * 0.05);
-        osc.stop(t + idx * 0.05 + 0.045);
+        osc.start(t + idx * 0.045);
+        osc.stop(t + idx * 0.045 + 0.045);
       });
     } catch {}
   }

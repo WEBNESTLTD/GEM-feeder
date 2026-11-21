@@ -75,6 +75,26 @@ export class Character extends Phaser.GameObjects.Container {
     });
   }
 
+  playCelebrationAnimation() {
+    this.isChewing = true;
+    this.setMouthFrame(8);
+
+    // Triumphant double hop
+    this.scene.tweens.add({
+      targets: this.sprite,
+      y: -18,
+      scaleX: 1.08,
+      scaleY: 0.92,
+      duration: 140,
+      yoyo: true,
+      repeat: 2,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        this.playEatingAnimation();
+      }
+    });
+  }
+
   playMissReaction() {
     if (this.isChewing) return;
     // Reset to closed mouth with slight disappointed twitch
