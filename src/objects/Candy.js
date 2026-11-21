@@ -41,9 +41,8 @@ export class Candy extends Phaser.GameObjects.Container {
     }
 
     this.body.setAllowGravity(true);
-    // Blue/Mint candy has lower gravity for floaty precision trick shots
-    const effectiveGravity = this.candyData.key === 'candy_blue' ? (PHYSICS.GRAVITY_Y * 0.72) : PHYSICS.GRAVITY_Y;
-    this.body.setGravityY(effectiveGravity);
+    // Consistent standard gravity across all regular candies
+    this.body.setGravityY(PHYSICS.GRAVITY_Y);
     this.body.setVelocity(vx, vy);
 
     // Dynamic rotation during flight

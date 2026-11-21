@@ -9,6 +9,7 @@ import { audioManager } from '../systems/AudioManager.js';
 import { saveManager } from '../storage/SaveManager.js';
 import { HUD } from '../ui/HUD.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
+import { SettingsMenu } from '../ui/SettingsMenu.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -100,7 +101,18 @@ export class GameScene extends Phaser.Scene {
     this.pauseMenu = new PauseMenu(this, {
       onResume: () => this.resumeGame(),
       onRestart: () => this.restartGame(),
-      onHome: () => this.goToHome()
+      onHome: () => this.goToHome(),
+      onSettings: () => this.openSettings()
+    });
+
+    // 8b. Settings Menu
+    this.settingsMenu = new SettingsMenu(this, {
+      onClose: () => {
+        // Return to pause menu if still paused
+        if (this.isPaused) {
+          this.pauseMenu.show();
+        }
+      }
     });
 
     // 9. Input Listeners
@@ -147,15 +159,15 @@ export class GameScene extends Phaser.Scene {
       if (!candy || candy.isFlying) return;
 
       const duration = this.time.now - this.pointerStartTime;
-      const throwData = this.inputManager.calculateThrow({
+      const throwData = this.inputManager.calculateThrowVelocity({
         startX: this.pointerStartX,
         startY: this.pointerStartY,
-        endX: pointer.x,
-        endY: pointer.y,
+        currentX: pointer.x,
+        currentY: pointer.y,
         durationMs: duration
       });
 
-      // Swipe must have an upward velocity intent (throwData.vy < 0)
+      // Launch candy using unified calculation
       if (throwData.isValid && throwData.vy < -50) {
         this.launchActiveCandy(candy, throwData.vx, throwData.vy);
         // Haptic feedback pulse on throw release
@@ -172,48 +184,46 @@ export class GameScene extends Phaser.Scene {
     const candy = this.spawner.getActiveCandy();
     if (!candy) return;
 
-    let dx = currentX - startX;
-    let dy = currentY - startY;
+    // Use unified velocity and angle calculation
+    const duration = this.time.now - this.pointerStartTime;
+    const throwData = this.inputManager.calculateThrowVelocity({
+      startX,
+      startY,
+      currentX,
+      currentY,
+      durationMs: duration
+    });
 
-    // Slingshot pull-back mode (pulling down launches up)
-    const isSlingshot = dy > 10;
-    if (isSlingshot) {
-      // Draw visible elastic rubber band from packet anchors to pull position
+    // If pulling down in slingshot mode, draw visible elastic rubber band
+    if (throwData.isSlingshot) {
       this.slingGraphics.lineStyle(4, 0x6B2FB3, 0.85);
       this.slingGraphics.beginPath();
       this.slingGraphics.moveTo(145, 750);
       this.slingGraphics.lineTo(currentX, currentY);
       this.slingGraphics.lineTo(245, 750);
       this.slingGraphics.strokePath();
-
-      // Invert vector for upward trajectory projection
-      dx = -dx;
-      dy = -dy;
     }
 
-    if (dy >= 0) return; // Only draw when launch trajectory points upward
+    if (!throwData.isValid) return;
 
-    // Predict parabolic arc points
-    const vx = dx * 3.5;
-    const vy = dy * 4.2;
-    const effectiveGravity = (candy.candyData && candy.candyData.key === 'candy_blue') ? (PHYSICS.GRAVITY_Y * 0.72) : PHYSICS.GRAVITY_Y;
+    // Simulate forward path using the exact launch velocity and standard gravity
     const dt = 0.04;
+    const gravity = PHYSICS.GRAVITY_Y;
     let currX = candy.x;
     let currY = candy.y;
-    let simVx = vx;
-    let simVy = vy;
+    let simVx = throwData.vx;
+    let simVy = throwData.vy;
 
-    // Simulate forward path to test if it hits the mouth hitbox (Trajectory Lock!)
     let isAimedAtMouth = false;
     let testX = candy.x;
     let testY = candy.y;
-    let testVx = vx;
-    let testVy = vy;
+    let testVx = throwData.vx;
+    let testVy = throwData.vy;
 
     for (let j = 0; j < 30; j++) {
       testX += testVx * dt;
-      testY += testVy * dt + 0.5 * effectiveGravity * dt * dt;
-      testVy += effectiveGravity * dt;
+      testY += testVy * dt + 0.5 * gravity * dt * dt;
+      testVy += gravity * dt;
       const collisionCheck = this.collisionManager.checkMouthCollision(testX, testY);
       if (collisionCheck.hit) {
         isAimedAtMouth = true;
@@ -221,14 +231,14 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    const arcColor = isAimedAtMouth ? 0x38C964 : 0x8E5BD6; // Bright green when trajectory locks onto mouth!
+    const arcColor = isAimedAtMouth ? 0x38C964 : 0x8E5BD6; // Luminous green on trajectory lock
     const dotColor = isAimedAtMouth ? 0xFFFFFF : 0xFFD93D;
     this.aimGraphics.lineStyle(4, arcColor, isAimedAtMouth ? 0.95 : 0.7);
 
     for (let i = 0; i < 12; i++) {
       const nextX = currX + simVx * dt;
-      const nextY = currY + simVy * dt + 0.5 * effectiveGravity * dt * dt;
-      simVy += effectiveGravity * dt;
+      const nextY = currY + simVy * dt + 0.5 * gravity * dt * dt;
+      simVy += gravity * dt;
 
       // Draw glowing dotted dash
       if (i % 2 === 0) {
@@ -317,7 +327,7 @@ export class GameScene extends Phaser.Scene {
       try { navigator.vibrate([35, 40, 45]); } catch {}
     }
 
-    // Crunch / munch chewing sound
+    // Crunchy munch chewing sound
     audioManager.playCrunch();
 
     // Combo system update
@@ -325,46 +335,11 @@ export class GameScene extends Phaser.Scene {
     this.hud.showCombo(comboInfo.multiplier);
     audioManager.setComboLevel(comboInfo.multiplier);
 
-    // Special candy effects!
-    const candyKey = candy.candyData ? candy.candyData.key : '';
-    let isFrenzyActive = false;
-
-    // Rainbow Candy Perk: Restores 1 life (if < 3) or triggers double frenzy!
-    if (candyKey === 'candy_rainbow') {
-      if (this.lives < 3) {
-        this.lives += 1;
-        this.hud.restoreLifeAnimation(this.lives);
-        audioManager.playLifeUp();
-        this.showFloatingPopup(candy.x, candy.y - 45, '+1 HEART!', 0xFF5CAA);
-      } else {
-        isFrenzyActive = true;
-      }
-    }
-
-    // Check if 10 consecutive hits milestone reached -> restore 1 life!
-    if (comboInfo.combo > 0 && comboInfo.combo % 10 === 0 && this.lives < 3) {
-      this.lives += 1;
-      this.hud.restoreLifeAnimation(this.lives);
-      audioManager.playLifeUp();
-      this.showFloatingPopup(candy.x, candy.y - 45, '+1 HEART!', 0xFF5CAA);
-    }
-
-    // Yellow Star candy bonus points (+10 bonus)
-    let extraPoints = 0;
-    if (candyKey === 'candy_yellow') {
-      extraPoints = 10;
-    }
-
-    // Scoring system update
-    const baseMultiplier = isFrenzyActive ? comboInfo.multiplier * 2 : comboInfo.multiplier;
+    // Scoring system update (single authoritative calculation)
     const scoreInfo = this.scoreManager.addHit({
       perfect: isPerfect,
-      comboMultiplier: baseMultiplier
+      comboMultiplier: comboInfo.multiplier
     });
-
-    if (extraPoints > 0) {
-      this.scoreManager.score += extraPoints;
-    }
 
     this.hud.updateScore(this.scoreManager.getScore(), this.scoreManager.getHighScore());
 
@@ -374,12 +349,10 @@ export class GameScene extends Phaser.Scene {
     // Audio & Visual popups
     if (isPerfect) {
       audioManager.playPerfectHit();
-      const popupText = isFrenzyActive ? `+${scoreInfo.addedPoints} 2X FRENZY!` : `+${scoreInfo.addedPoints} Perfect!`;
-      this.showFloatingPopup(candy.x, candy.y - 20, popupText, 0xD81B7A);
+      this.showFloatingPopup(candy.x, candy.y - 20, `+${scoreInfo.addedPoints} Perfect!`, 0xD81B7A);
     } else {
       audioManager.playHit();
-      const popupText = extraPoints > 0 ? `+${scoreInfo.addedPoints + extraPoints} Star!` : `+${scoreInfo.addedPoints}`;
-      this.showFloatingPopup(candy.x, candy.y - 20, popupText, 0x4B1F86);
+      this.showFloatingPopup(candy.x, candy.y - 20, `+${scoreInfo.addedPoints}`, 0x4B1F86);
     }
 
     if (comboInfo.isMilestone) {
@@ -394,7 +367,7 @@ export class GameScene extends Phaser.Scene {
 
     // Spawn next candy after short delay
     this.time.delayedCall(450, () => {
-      if (!this.isGameOver) {
+      if (!this.isGameOver && !this.isPaused) {
         this.spawnNextCandy();
       }
     });
@@ -432,7 +405,7 @@ export class GameScene extends Phaser.Scene {
       this.triggerGameOver();
     } else {
       this.time.delayedCall(500, () => {
-        if (!this.isGameOver) {
+        if (!this.isGameOver && !this.isPaused) {
           this.character.resetToIdle();
           this.spawnNextCandy();
         }
@@ -528,16 +501,53 @@ export class GameScene extends Phaser.Scene {
   }
 
   pauseGame() {
-    if (this.isGameOver) return;
+    if (this.isGameOver || this.isPaused) return;
     this.isPaused = true;
+
+    // 1. Freeze Arcade Physics
     this.physics.pause();
+
+    // 2. Comprehensive tween freeze
+    this.tweens.pauseAll();
+
+    // 3. Pause scene timer pool to prevent delayed callbacks from executing
+    this.time.paused = true;
+
+    // 4. Pause audio BGM
+    audioManager.pauseBGM();
+
+    // 5. Clear aiming/slingshot overlays
+    this.isPointerDown = false;
+    this.aimGraphics.clear();
+    this.slingGraphics.clear();
+
+    // 6. Show pause dialog
     this.pauseMenu.show();
   }
 
   resumeGame() {
+    if (!this.isPaused || this.isGameOver) return;
     this.isPaused = false;
+
+    // 1. Resume Arcade Physics
     this.physics.resume();
+
+    // 2. Resume scene tweens
+    this.tweens.resumeAll();
+
+    // 3. Resume scene timer pool
+    this.time.paused = false;
+
+    // 4. Resume audio BGM
+    audioManager.resumeBGM();
+
+    // 5. Hide pause dialog
     this.pauseMenu.hide();
+  }
+
+  openSettings() {
+    this.pauseMenu.hide();
+    this.settingsMenu.show();
   }
 
   restartGame() {

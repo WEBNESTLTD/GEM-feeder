@@ -1,6 +1,7 @@
 import { COLORS } from '../config/gameConfig.js';
 import { saveManager } from '../storage/SaveManager.js';
 import { audioManager } from '../systems/AudioManager.js';
+import { SettingsMenu } from '../ui/SettingsMenu.js';
 
 export class HomeScene extends Phaser.Scene {
   constructor() {
@@ -40,8 +41,22 @@ export class HomeScene extends Phaser.Scene {
     // Bottom Sound Toggle (left: 24, top: 758, width: 52, height: 52)
     this.createSoundButton();
 
+    // Bottom Settings Button (left: 88, top: 758, width: 52, height: 52)
+    this.createSettingsButton();
+
     // Bottom Best Score Pill (right: 24, top: 758, height: 52)
     this.createBestScoreCard();
+
+    // Settings Modal
+    this.settingsMenu = new SettingsMenu(this, {
+      onClose: () => {
+        // Update sound icon in case toggled inside settings modal
+        const isEnabled = saveManager.getSoundEnabled();
+        if (this.soundIcon) {
+          this.soundIcon.setTexture(isEnabled ? 'sound_on' : 'sound_off');
+        }
+      }
+    });
   }
 
   createDecorations() {
@@ -218,22 +233,58 @@ export class HomeScene extends Phaser.Scene {
     });
   }
 
-  createBestScoreCard() {
-    const bestContainer = this.add.container(290, 784);
+  createSettingsButton() {
+    this.settingsBtn = this.add.container(92, 784);
 
     const shadow = this.add.graphics();
     shadow.fillStyle(0xE3D0F5, 1);
-    shadow.fillRoundedRect(-75, -22, 150, 52, 26);
+    shadow.fillCircle(0, 4, 26);
+    this.settingsBtn.add(shadow);
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0xFFFFFF, 1);
+    bg.fillCircle(0, 0, 26);
+    this.settingsBtn.add(bg);
+
+    const gearText = this.add.text(0, 0, '⚙', {
+      fontFamily: 'Fredoka, sans-serif',
+      fontSize: '24px',
+      color: COLORS.ink
+    }).setOrigin(0.5);
+    this.settingsBtn.add(gearText);
+
+    this.settingsBtn.setSize(52, 52);
+    this.settingsBtn.setInteractive({ useHandCursor: true });
+    this.settingsBtn.on('pointerdown', () => {
+      audioManager.playButtonClick();
+      this.tweens.add({
+        targets: this.settingsBtn,
+        scale: 0.88,
+        duration: 80,
+        yoyo: true,
+        onComplete: () => {
+          this.settingsMenu.show();
+        }
+      });
+    });
+  }
+
+  createBestScoreCard() {
+    const bestContainer = this.add.container(295, 784);
+
+    const shadow = this.add.graphics();
+    shadow.fillStyle(0xE3D0F5, 1);
+    shadow.fillRoundedRect(-68, -22, 136, 52, 26);
     bestContainer.add(shadow);
 
     const bg = this.add.graphics();
     bg.fillStyle(0xFFFFFF, 1);
-    bg.fillRoundedRect(-75, -26, 150, 52, 26);
+    bg.fillRoundedRect(-68, -26, 136, 52, 26);
     bestContainer.add(bg);
 
-    const label = this.add.text(-25, 0, 'BEST', {
+    const label = this.add.text(-22, 0, 'BEST', {
       fontFamily: 'Fredoka, sans-serif',
-      fontSize: '12px',
+      fontSize: '11px',
       fontWeight: '600',
       color: COLORS.inkSoft,
       letterSpacing: 1.5
@@ -241,9 +292,9 @@ export class HomeScene extends Phaser.Scene {
     bestContainer.add(label);
 
     const highScore = saveManager.getHighScore();
-    const val = this.add.text(25, 0, highScore.toLocaleString(), {
+    const val = this.add.text(22, 0, highScore.toLocaleString(), {
       fontFamily: 'Fredoka, sans-serif',
-      fontSize: '24px',
+      fontSize: '22px',
       fontWeight: '700',
       color: COLORS.ink
     }).setOrigin(0.5);

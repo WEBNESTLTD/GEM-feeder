@@ -145,10 +145,19 @@ class SoundSynthesizer {
     this.comboLevel = level || 1;
   }
 
+  pauseBGM() {
+    this.isBGMPaused = true;
+  }
+
+  resumeBGM() {
+    this.isBGMPaused = false;
+  }
+
   startBGM() {
     if (this.isPlayingBGM || !this.isMusicEnabled()) return;
     this.initContext();
     this.isPlayingBGM = true;
+    this.isBGMPaused = false;
     this.comboLevel = 1;
 
     // Upbeat gentle casual pentatonic arpeggio sequence
@@ -168,7 +177,7 @@ class SoundSynthesizer {
     ];
 
     this.bgmTimer = setInterval(() => {
-      if (!this.isPlayingBGM || !this.isMusicEnabled() || !this.ctx) return;
+      if (!this.isPlayingBGM || this.isBGMPaused || !this.isMusicEnabled() || !this.ctx) return;
       const note = melody[this.bgmNoteIndex % melody.length];
       const bassNote = bassline[this.bgmNoteIndex % bassline.length];
       this.bgmNoteIndex++;

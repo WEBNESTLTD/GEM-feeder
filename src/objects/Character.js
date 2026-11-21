@@ -95,20 +95,27 @@ export class Character extends Phaser.GameObjects.Container {
   resetToIdle() {
     this.isChewing = false;
     this.setMouthFrame(0);
+    if (this.aimTween) {
+      this.aimTween.stop();
+      this.aimTween = null;
+    }
     this.sprite.rotation = 0;
   }
 
   trackAim(pointerX, pointerY) {
     if (this.isChewing) return;
     // Eye tracking / subtle head tilt towards the aiming position
-    // Center is 195; max tilt angle ~ 0.08 radians (~4.5 deg)
+    // Center is 195; clamp target rotation smoothly
     const dx = pointerX - 195;
-    const clampedAngle = Phaser.Math.Clamp(dx / 300, -1, 1) * 0.08;
-    this.scene.tweens.add({
-      targets: this.sprite,
-      rotation: clampedAngle,
-      duration: 60,
-      ease: 'Linear'
-    });
+    const targetAngle = Phaser.Math.Clamp(dx / 300, -1, 1) * 0.08;
+
+    // Use direct interpolation (LERP) instead of creating unbounded tweens on every pointermove
+    this.sprite.rotation = Phaser.Math.Linear(this.sprite.rotation, targetAngle, 0.4);
+  }
+
+  preDestroy() {
+    if (this.idleTween) this.idleTween.stop();
+    if (this.aimTween) this.aimTween.stop();
+    super.preDestroy();
   }
 }
