@@ -7,16 +7,26 @@ import { ScoreManager } from '../systems/ScoreManager.js';
 import { ComboManager } from '../systems/ComboManager.js';
 import { audioManager } from '../systems/AudioManager.js';
 import { saveManager } from '../storage/SaveManager.js';
+import { levelManager } from '../systems/LevelManager.js';
+import { PowerUpManager } from '../systems/PowerUpManager.js';
+import { missionManager } from '../systems/MissionManager.js';
+import { achievementManager } from '../systems/AchievementManager.js';
 import { HUD } from '../ui/HUD.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
 import { SettingsMenu } from '../ui/SettingsMenu.js';
+import { LevelCompleteModal } from '../ui/LevelCompleteModal.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
     super('GameScene');
   }
 
-  create() {
+  create(data = {}) {
+    // 0. Level Progression Data
+    this.levelId = (data && data.levelId) || null;
+    this.levelData = this.levelId ? levelManager.getLevel(this.levelId) : null;
+    this.isLevelWon = false;
+
     // 1. Scene State
     this.isPaused = false;
     this.isGameOver = false;
@@ -29,6 +39,7 @@ export class GameScene extends Phaser.Scene {
     this.activeFlyingCandy = null;
 
     // 2. Systems
+    this.powerUpManager = new PowerUpManager(this);
     this.scoreManager = new ScoreManager({ initialHighScore: saveManager.getHighScore() });
     this.comboManager = new ComboManager();
     this.inputManager = new InputManager({
@@ -54,7 +65,7 @@ export class GameScene extends Phaser.Scene {
     shelf.fillStyle(0xFFFFFF, 0.9);
     shelf.fillRoundedRect(-10, 392, 410, 38, 19);
 
-    // Dynamic moving character variables for difficulty ramp (score >= 500)
+    // Dynamic moving character variables for difficulty ramp (score >= 500 or level sway)
     this.characterBaseX = 195;
     this.characterBaseY = 240;
     this.swayTime = 0;
@@ -83,8 +94,16 @@ export class GameScene extends Phaser.Scene {
       score: this.scoreManager.getScore(),
       highScore: this.scoreManager.getHighScore(),
       lives: this.lives,
+      levelData: this.levelData,
       nextCandyKey: this.spawner.getNextCandyData().key,
-      onPauseClick: () => this.pauseGame()
+      onPauseClick: () => this.pauseGame(),
+      onPowerUpClick: (type) => {
+        const activated = this.powerUpManager.activatePowerUp(type);
+        if (activated) {
+          audioManager.playPowerUpActivate();
+          this.showFloatingPopup(195, 411, `Activated ${type.toUpperCase()}!`, 0x38C964);
+        }
+      }
     });
 
     // Trajectory Aiming Line Graphic
@@ -111,10 +130,22 @@ export class GameScene extends Phaser.Scene {
     // 8b. Settings Menu
     this.settingsMenu = new SettingsMenu(this, {
       onClose: () => {
-        // Return to pause menu if still paused
         if (this.isPaused) {
           this.pauseMenu.show();
         }
+      }
+    });
+
+    // 8c. Level Complete Modal
+    this.levelCompleteModal = new LevelCompleteModal(this, {
+      onNext: () => {
+        this.scene.restart({ levelId: (this.levelId || 1) + 1 });
+      },
+      onReplay: () => {
+        this.scene.restart({ levelId: this.levelId });
+      },
+      onMap: () => {
+        this.scene.start('LevelSelectScene', { worldId: this.levelData ? this.levelData.worldId : 'world_1' });
       }
     });
 
@@ -219,6 +250,7 @@ export class GameScene extends Phaser.Scene {
     // Simulate forward path using the exact launch velocity and standard gravity
     const dt = 0.04;
     const gravity = PHYSICS.GRAVITY_Y;
+    const isPrecision = this.powerUpManager.isPrecisionEnabled();
     let currX = candy.x;
     let currY = candy.y;
     let simVx = throwData.vx;
@@ -230,7 +262,8 @@ export class GameScene extends Phaser.Scene {
     let testVx = throwData.vx;
     let testVy = throwData.vy;
 
-    for (let j = 0; j < 30; j++) {
+    const simLimit = isPrecision ? 50 : 30;
+    for (let j = 0; j < simLimit; j++) {
       testX += testVx * dt;
       testY += testVy * dt + 0.5 * gravity * dt * dt;
       testVy += gravity * dt;
@@ -241,11 +274,12 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    const arcColor = isAimedAtMouth ? 0x38C964 : 0x8E5BD6; // Luminous green on trajectory lock
-    const dotColor = isAimedAtMouth ? 0xFFFFFF : 0xFFD93D;
-    this.aimGraphics.lineStyle(4, arcColor, isAimedAtMouth ? 0.95 : 0.7);
+    const arcColor = isAimedAtMouth ? (isPrecision ? 0xFF5CAA : 0x38C964) : 0x8E5BD6; // High-contrast trajectory lock
+    const dotColor = isAimedAtMouth ? 0xFFFFFF : (isPrecision ? 0xFF5CAA : 0xFFD93D);
+    this.aimGraphics.lineStyle(isPrecision ? 5 : 4, arcColor, isAimedAtMouth ? 0.95 : 0.7);
 
-    for (let i = 0; i < 12; i++) {
+    const dotCount = isPrecision ? 22 : 12;
+    for (let i = 0; i < dotCount; i++) {
       const nextX = currX + simVx * dt;
       const nextY = currY + simVy * dt + 0.5 * gravity * dt * dt;
       simVy += gravity * dt;
@@ -253,7 +287,7 @@ export class GameScene extends Phaser.Scene {
       // Draw glowing dotted dash
       if (i % 2 === 0) {
         this.aimGraphics.fillStyle(dotColor, isAimedAtMouth ? 1 : 0.85);
-        this.aimGraphics.fillCircle(nextX, nextY, (isAimedAtMouth ? 6.5 : 5) - (i * 0.25));
+        this.aimGraphics.fillCircle(nextX, nextY, (isAimedAtMouth ? 6.5 : 5) - (i * 0.15));
       }
 
       currX = nextX;
@@ -270,6 +304,9 @@ export class GameScene extends Phaser.Scene {
       this.hud.dismissGuidance();
     }
 
+    // Record mission throw event
+    missionManager.recordEvent('throw');
+
     candy.launch(vx, vy);
     audioManager.playThrow();
 
@@ -278,14 +315,18 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(time, delta) {
-    if (this.isPaused || this.isGameOver) return;
+    if (this.isPaused || this.isGameOver || this.isLevelWon) return;
 
-    // Difficulty ramp: character gently sways side to side once score reaches 500
+    const timeScale = this.powerUpManager.getTimeScale();
+    const effDelta = delta * timeScale;
+
+    // Difficulty ramp or level sway
     const currentScore = this.scoreManager.getScore();
-    if (currentScore >= 500) {
-      this.swayTime += delta * 0.0018;
-      // Sway amplitude scales from 15px to 35px
-      const amplitude = Math.min(35, 15 + ((currentScore - 500) / 500) * 20);
+    const hasLevelSway = Boolean(this.levelData && this.levelData.swaySpeed > 0);
+    if (currentScore >= 500 || hasLevelSway) {
+      const swayRate = hasLevelSway ? this.levelData.swaySpeed : 0.0018;
+      this.swayTime += effDelta * swayRate;
+      const amplitude = hasLevelSway ? 30 : Math.min(35, 15 + ((currentScore - 500) / 500) * 20);
       const swayOffset = Math.sin(this.swayTime) * amplitude;
       this.character.x = this.characterBaseX + swayOffset;
       this.collisionManager.setMouthZone({
@@ -297,7 +338,21 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.activeFlyingCandy) {
-      this.activeFlyingCandy.update(delta);
+      this.activeFlyingCandy.update(effDelta);
+
+      // Magnet power-up attraction
+      if (this.powerUpManager.isPowerUpActive('magnet')) {
+        const pull = this.powerUpManager.applyMagnetPull(
+          this.activeFlyingCandy.x,
+          this.activeFlyingCandy.y,
+          this.character.x,
+          this.characterBaseY
+        );
+        if (pull.vx !== 0 || pull.vy !== 0) {
+          this.activeFlyingCandy.body.velocity.x += pull.vx * (effDelta / 16);
+          this.activeFlyingCandy.body.velocity.y += pull.vy * (effDelta / 16);
+        }
+      }
 
       const candyX = this.activeFlyingCandy.x;
       const candyY = this.activeFlyingCandy.y;
@@ -347,13 +402,30 @@ export class GameScene extends Phaser.Scene {
     this.hud.showCombo(comboInfo.multiplier);
     audioManager.setComboLevel(comboInfo.multiplier);
 
-    // Scoring system update (single authoritative calculation)
+    // Scoring system update with Power-Up 2x multiplier
+    const powerUpMultiplier = this.powerUpManager.getScoreMultiplier();
+    const effectiveMultiplier = comboInfo.multiplier * powerUpMultiplier;
+
     const scoreInfo = this.scoreManager.addHit({
       perfect: isPerfect,
-      comboMultiplier: comboInfo.multiplier
+      comboMultiplier: effectiveMultiplier
     });
 
     this.hud.updateScore(this.scoreManager.getScore(), this.scoreManager.getHighScore());
+
+    // Record mission & achievement events
+    missionManager.recordEvent('score', scoreInfo.addedPoints);
+    achievementManager.recordProgress('first_catch');
+    if (isPerfect) {
+      missionManager.recordEvent('perfect');
+      achievementManager.recordProgress('perfect_aim');
+    }
+    if (comboInfo.multiplier >= 3) {
+      missionManager.recordEvent('combo_3x');
+    }
+    if (comboInfo.multiplier >= 4) {
+      achievementManager.recordProgress('combo_master');
+    }
 
     // Character eating or celebration animation
     if (isPerfect) {
@@ -381,10 +453,30 @@ export class GameScene extends Phaser.Scene {
     // Save high score if beaten
     saveManager.saveHighScore(this.scoreManager.getHighScore());
 
+    // Level Mode Win Condition Check
+    if (this.levelData && this.scoreManager.getScore() >= this.levelData.targetScore && !this.isLevelWon) {
+      this.isLevelWon = true;
+      const res = levelManager.completeLevel(this.levelId, this.scoreManager.getScore());
+      missionManager.recordEvent('level_complete');
+      if (res.stars === 3) {
+        achievementManager.recordProgress('three_star_champion');
+      }
+      this.time.delayedCall(700, () => {
+        this.levelCompleteModal.showResult({
+          success: true,
+          score: this.scoreManager.getScore(),
+          stars: res.stars,
+          coinsEarned: res.coinsEarned,
+          hasNextLevel: this.levelId < 30
+        });
+      });
+      return;
+    }
+
     // Spawn next candy after short delay
     const spawnDelay = isPerfect ? 600 : 450;
     this.time.delayedCall(spawnDelay, () => {
-      if (!this.isGameOver && !this.isPaused) {
+      if (!this.isGameOver && !this.isPaused && !this.isLevelWon) {
         this.spawnNextCandy();
       }
     });
@@ -396,6 +488,19 @@ export class GameScene extends Phaser.Scene {
 
     if (candy) {
       candy.destroy();
+    }
+
+    // Power-Up Shield protection check
+    if (this.powerUpManager.consumeShield()) {
+      audioManager.playTone(600, 'sine', 0.25, 0.25);
+      this.showFloatingPopup(195, 300, '🛡️ Shield Saved!', 0x9B5DE5);
+      this.time.delayedCall(450, () => {
+        if (!this.isGameOver && !this.isPaused && !this.isLevelWon) {
+          this.character.resetToIdle();
+          this.spawnNextCandy();
+        }
+      });
+      return;
     }
 
     // Haptic feedback for miss: heavy buzz
@@ -417,10 +522,23 @@ export class GameScene extends Phaser.Scene {
     this.hud.updateLives(this.lives);
 
     if (this.lives <= 0) {
-      this.triggerGameOver();
+      if (this.levelData) {
+        this.isGameOver = true;
+        this.time.delayedCall(600, () => {
+          this.levelCompleteModal.showResult({
+            success: false,
+            score: this.scoreManager.getScore(),
+            stars: 0,
+            coinsEarned: 0,
+            hasNextLevel: false
+          });
+        });
+      } else {
+        this.triggerGameOver();
+      }
     } else {
       this.time.delayedCall(500, () => {
-        if (!this.isGameOver && !this.isPaused) {
+        if (!this.isGameOver && !this.isPaused && !this.isLevelWon) {
           this.character.resetToIdle();
           this.spawnNextCandy();
         }
@@ -592,11 +710,13 @@ export class GameScene extends Phaser.Scene {
 
   restartGame() {
     this.pauseMenu.hide();
+    if (this.powerUpManager) this.powerUpManager.reset();
     this.scene.restart();
   }
 
   goToHome() {
     this.pauseMenu.hide();
+    if (this.powerUpManager) this.powerUpManager.reset();
     this.scene.start('HomeScene');
   }
 

@@ -154,6 +154,39 @@ class SoundSynthesizer {
     this.playTone(700, 'sine', 0.05, 0.15, 400);
   }
 
+  playCoinCollect() {
+    // Crisp cheerful coin chime
+    this.playTone(987.77, 'sine', 0.08, 0.22);
+    setTimeout(() => this.playTone(1318.51, 'sine', 0.16, 0.25), 50);
+  }
+
+  playStarEarn() {
+    // Twinkling star sparkle
+    this.playTone(880, 'triangle', 0.1, 0.2);
+    setTimeout(() => this.playTone(1174.66, 'sine', 0.2, 0.25), 80);
+  }
+
+  playPowerUpActivate() {
+    // Resonant power charge sweep
+    this.playTone(280, 'sine', 0.25, 0.25, 880);
+  }
+
+  playLevelComplete() {
+    // Joyful level victory fanfare
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    notes.forEach((freq, idx) => {
+      setTimeout(() => this.playTone(freq, 'triangle', 0.25, 0.28), idx * 100);
+    });
+  }
+
+  playWorldUnlock() {
+    // Grand royal world unlocked fanfare
+    const notes = [440, 554.37, 659.25, 880, 1108.73];
+    notes.forEach((freq, idx) => {
+      setTimeout(() => this.playTone(freq, 'sine', 0.35, 0.3), idx * 120);
+    });
+  }
+
   setComboLevel(level) {
     this.comboLevel = level || 1;
   }

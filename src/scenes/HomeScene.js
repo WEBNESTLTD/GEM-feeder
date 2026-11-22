@@ -32,19 +32,28 @@ export class HomeScene extends Phaser.Scene {
       ease: 'Sine.easeInOut'
     });
 
-    // Play Button (left: 55, top: 548, width: 280, height: 72, radius: 36)
-    this.createPlayButton();
+    // Top Header Stats (Coins & Stars)
+    this.createTopStats();
 
-    // How to Play Button (left: 55, top: 644, width: 280, height: 56, radius: 28)
-    this.createHowToPlayButton();
+    // 1. Campaign Mode Button (Primary CTA)
+    this.createCampaignButton();
 
-    // Bottom Sound Toggle (left: 24, top: 758, width: 52, height: 52)
+    // 2. Endless Arcade Button
+    this.createArcadeButton();
+
+    // 3. Middle Features Row: Shop and Quests
+    this.createFeaturesRow();
+
+    // Bottom Sound Toggle (left: 24, top: 765, width: 52, height: 52)
     this.createSoundButton();
 
-    // Bottom Settings Button (left: 88, top: 758, width: 52, height: 52)
+    // Bottom Settings Button (left: 88, top: 765, width: 52, height: 52)
     this.createSettingsButton();
 
-    // Bottom Best Score Pill (right: 24, top: 758, height: 52)
+    // Bottom How to play text link
+    this.createTutorialLink();
+
+    // Bottom Best Score Pill (right: 24, top: 765, height: 52)
     this.createBestScoreCard();
 
     // Settings Modal
@@ -145,43 +154,100 @@ export class HomeScene extends Phaser.Scene {
     });
   }
 
-  createPlayButton() {
-    const btn = this.add.container(195, 584);
+  createTopStats() {
+    const statsPill = this.add.container(195, 185);
+    const bg = this.add.graphics();
+    bg.fillStyle(0xFFFFFF, 0.9);
+    bg.fillRoundedRect(-110, -16, 220, 32, 16);
+    statsPill.add(bg);
+
+    const statsText = this.add.text(0, 0, `🪙 ${saveManager.getCoins()}  •  ★ ${saveManager.getTotalStars()}/90`, {
+      fontFamily: 'Fredoka, sans-serif',
+      fontSize: '15px',
+      fontWeight: '700',
+      color: COLORS.ink
+    }).setOrigin(0.5);
+    statsPill.add(statsText);
+  }
+
+  createCampaignButton() {
+    const btn = this.add.container(195, 545);
 
     const shadow = this.add.graphics();
     shadow.fillStyle(0x9C0F56, 1);
-    shadow.fillRoundedRect(-140, -30, 280, 72, 36);
+    shadow.fillRoundedRect(-140, -28, 280, 64, 32);
     btn.add(shadow);
 
     const bg = this.add.graphics();
     bg.fillStyle(0xD81B7A, 1);
-    bg.fillRoundedRect(-140, -36, 280, 72, 36);
+    bg.fillRoundedRect(-140, -32, 280, 64, 32);
     btn.add(bg);
 
-    const icon = this.add.image(-45, 0, 'play_icon');
-    icon.setDisplaySize(28, 28);
+    const icon = this.add.image(-55, -2, 'play_icon');
+    icon.setDisplaySize(26, 26);
     btn.add(icon);
 
-    const label = this.add.text(10, 0, 'Play', {
+    const label = this.add.text(5, -2, 'Campaign', {
       fontFamily: 'Fredoka, sans-serif',
-      fontSize: '30px',
+      fontSize: '26px',
       fontWeight: '700',
       color: '#FFFFFF'
     }).setOrigin(0.5);
     btn.add(label);
 
-    btn.setSize(280, 72);
-    btn.setInteractive({ useHandCursor: true });
+    btn.setSize(280, 64);
+    btn.setInteractive(new Phaser.Geom.Rectangle(-140, -32, 280, 64), Phaser.Geom.Rectangle.Contains);
+    btn.input.cursor = 'pointer';
 
-    // Subtle breathing pulse on Play button
+    // Subtle breathing pulse
     this.tweens.add({
       targets: btn,
-      scale: 1.035,
+      scale: 1.03,
       duration: 1000,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut'
     });
+
+    btn.on('pointerdown', () => {
+      audioManager.playButtonClick();
+      audioManager.startBGM();
+      this.tweens.add({
+        targets: btn,
+        scale: 0.94,
+        duration: 80,
+        yoyo: true,
+        onComplete: () => {
+          this.scene.start('WorldSelectScene');
+        }
+      });
+    });
+  }
+
+  createArcadeButton() {
+    const btn = this.add.container(195, 620);
+
+    const shadow = this.add.graphics();
+    shadow.fillStyle(0xCDB8EE, 1);
+    shadow.fillRoundedRect(-140, -22, 280, 52, 26);
+    btn.add(shadow);
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0xFFFFFF, 1);
+    bg.fillRoundedRect(-140, -26, 280, 52, 26);
+    btn.add(bg);
+
+    const label = this.add.text(0, -2, 'Endless Arcade', {
+      fontFamily: 'Fredoka, sans-serif',
+      fontSize: '20px',
+      fontWeight: '700',
+      color: COLORS.ink
+    }).setOrigin(0.5);
+    btn.add(label);
+
+    btn.setSize(280, 52);
+    btn.setInteractive(new Phaser.Geom.Rectangle(-140, -26, 280, 52), Phaser.Geom.Rectangle.Contains);
+    btn.input.cursor = 'pointer';
 
     btn.on('pointerdown', () => {
       audioManager.playButtonClick();
@@ -198,40 +264,75 @@ export class HomeScene extends Phaser.Scene {
     });
   }
 
-  createHowToPlayButton() {
-    const btn = this.add.container(195, 672);
+  createFeaturesRow() {
+    // Left: Sweet Shop (x: 125, y: 685)
+    const shopBtn = this.add.container(125, 685);
+    const sShadow = this.add.graphics();
+    sShadow.fillStyle(0xCDB8EE, 1);
+    sShadow.fillRoundedRect(-65, -18, 130, 42, 21);
+    shopBtn.add(sShadow);
 
-    const shadow = this.add.graphics();
-    shadow.fillStyle(0xCDB8EE, 1);
-    shadow.fillRoundedRect(-140, -24, 280, 56, 28);
-    btn.add(shadow);
+    const sBg = this.add.graphics();
+    sBg.fillStyle(0xFFFFFF, 1);
+    sBg.fillRoundedRect(-65, -22, 130, 42, 21);
+    shopBtn.add(sBg);
 
-    const bg = this.add.graphics();
-    bg.fillStyle(0xFFFFFF, 1);
-    bg.fillRoundedRect(-140, -28, 280, 56, 28);
-    btn.add(bg);
-
-    const label = this.add.text(0, 0, 'How to Play', {
+    const sLabel = this.add.text(0, -2, '🛍️ Shop', {
       fontFamily: 'Fredoka, sans-serif',
-      fontSize: '22px',
-      fontWeight: '600',
+      fontSize: '16px',
+      fontWeight: '700',
       color: COLORS.ink
     }).setOrigin(0.5);
-    btn.add(label);
+    shopBtn.add(sLabel);
 
-    btn.setSize(280, 56);
-    btn.setInteractive({ useHandCursor: true });
-    btn.on('pointerdown', () => {
+    shopBtn.setSize(130, 42);
+    shopBtn.setInteractive(new Phaser.Geom.Rectangle(-65, -22, 130, 42), Phaser.Geom.Rectangle.Contains);
+    shopBtn.input.cursor = 'pointer';
+    shopBtn.on('pointerdown', () => {
       audioManager.playButtonClick();
-      this.tweens.add({
-        targets: btn,
-        scale: 0.94,
-        duration: 80,
-        yoyo: true,
-        onComplete: () => {
-          this.scene.start('TutorialScene');
-        }
-      });
+      this.scene.start('ShopScene');
+    });
+
+    // Right: Quests & Missions (x: 265, y: 685)
+    const questBtn = this.add.container(265, 685);
+    const qShadow = this.add.graphics();
+    qShadow.fillStyle(0xCDB8EE, 1);
+    qShadow.fillRoundedRect(-65, -18, 130, 42, 21);
+    questBtn.add(qShadow);
+
+    const qBg = this.add.graphics();
+    qBg.fillStyle(0xFFFFFF, 1);
+    qBg.fillRoundedRect(-65, -22, 130, 42, 21);
+    questBtn.add(qBg);
+
+    const qLabel = this.add.text(0, -2, '📋 Quests', {
+      fontFamily: 'Fredoka, sans-serif',
+      fontSize: '16px',
+      fontWeight: '700',
+      color: COLORS.ink
+    }).setOrigin(0.5);
+    questBtn.add(qLabel);
+
+    questBtn.setSize(130, 42);
+    questBtn.setInteractive(new Phaser.Geom.Rectangle(-65, -22, 130, 42), Phaser.Geom.Rectangle.Contains);
+    questBtn.input.cursor = 'pointer';
+    questBtn.on('pointerdown', () => {
+      audioManager.playButtonClick();
+      this.scene.start('MissionScene');
+    });
+  }
+
+  createTutorialLink() {
+    const link = this.add.text(195, 735, 'How to Play?', {
+      fontFamily: 'Fredoka, sans-serif',
+      fontSize: '14px',
+      fontWeight: '600',
+      color: COLORS.inkSoft
+    }).setOrigin(0.5);
+    link.setInteractive({ useHandCursor: true });
+    link.on('pointerdown', () => {
+      audioManager.playButtonClick();
+      this.scene.start('TutorialScene');
     });
   }
 
