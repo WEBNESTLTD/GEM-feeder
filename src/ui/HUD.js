@@ -1,11 +1,15 @@
 import { COLORS } from '../config/gameConfig.js';
 import { audioManager } from '../systems/AudioManager.js';
+import { saveManager } from '../storage/SaveManager.js';
+import { POWER_UPS } from '../systems/PowerUpManager.js';
 
 export class HUD extends Phaser.GameObjects.Container {
   constructor(scene, options = {}) {
     super(scene, 0, 0);
     this.scene = scene;
+    this.levelData = options.levelData || null;
     this.onPauseClick = options.onPauseClick || (() => {});
+    this.onPowerUpClick = options.onPowerUpClick || (() => {});
 
     this.createScoreCard(options.score || 0, options.highScore || 0);
     this.createPauseButton();
@@ -15,16 +19,21 @@ export class HUD extends Phaser.GameObjects.Container {
     this.createNextPreview(options.nextCandyKey || 'candy_green');
     this.createFirstThrowGuidance();
 
+    if (this.levelData) {
+      this.createLevelGoalBanner(this.levelData);
+    }
+    this.createPowerUpBar();
+
     scene.add.existing(this);
   }
 
   createScoreCard(initialScore, initialHighScore) {
-    // White rounded card (left: 16, top: 16, width: 150, height: 74)
+    // White rounded card (left: 16, top: 16, width: 145, height: 74)
     this.scoreCard = this.scene.add.graphics();
     this.scoreCard.fillStyle(0xE3D0F5, 1);
-    this.scoreCard.fillRoundedRect(16, 20, 150, 72, 20); // soft shadow
+    this.scoreCard.fillRoundedRect(16, 20, 145, 72, 20);
     this.scoreCard.fillStyle(0xFFFFFF, 1);
-    this.scoreCard.fillRoundedRect(16, 16, 150, 72, 20);
+    this.scoreCard.fillRoundedRect(16, 16, 145, 72, 20);
     this.add(this.scoreCard);
 
     // Labels
@@ -52,6 +61,133 @@ export class HUD extends Phaser.GameObjects.Container {
       color: COLORS.inkSoft
     });
     this.add(this.highScoreText);
+  }
+
+  createLevelGoalBanner(levelData) {
+    this.levelGoalContainer = this.scene.add.container(195, 42);
+
+    const bgShadow = this.scene.add.graphics();
+    bgShadow.fillStyle(0xE3D0F5, 1);
+    bgShadow.fillRoundedRect(-55, -20, 110, 44, 18);
+    this.levelGoalContainer.add(bgShadow);
+
+    const bg = this.scene.add.graphics();
+    bg.fillStyle(0xFFFFFF, 1);
+    bg.fillRoundedRect(-55, -24, 110, 44, 18);
+    this.levelGoalContainer.add(bg);
+
+    const lvlLabel = this.scene.add.text(0, -14, `LV ${levelData.levelId}`, {
+      fontFamily: 'Fredoka, sans-serif',
+      fontSize: '14px',
+      fontWeight: '700',
+      color: COLORS.ink
+    }).setOrigin(0.5);
+    this.levelGoalContainer.add(lvlLabel);
+
+    // 3 mini stars
+    this.miniStars = [];
+    [-24, 0, 24].forEach((sx) => {
+      const st = this.scene.add.text(sx, 3, '☆', {
+        fontSize: '15px',
+        color: '#CDB8EE'
+      }).setOrigin(0.5);
+      this.levelGoalContainer.add(st);
+      this.miniStars.push(st);
+    });
+
+    this.add(this.levelGoalContainer);
+  }
+
+  updateLevelStars(score) {
+    if (!this.levelData || !this.miniStars) return;
+    const [s1, s2, s3] = this.levelData.starThresholds;
+    if (this.miniStars[0]) this.miniStars[0].setText(score >= s1 ? '★' : '☆').setColor(score >= s1 ? '#FFD93D' : '#CDB8EE');
+    if (this.miniStars[1]) this.miniStars[1].setText(score >= s2 ? '★' : '☆').setColor(score >= s2 ? '#FFD93D' : '#CDB8EE');
+    if (this.miniStars[2]) this.miniStars[2].setText(score >= s3 ? '★' : '☆').setColor(score >= s3 ? '#FFD93D' : '#CDB8EE');
+  }
+
+  createPowerUpBar() {
+    this.powerUpBarContainer = this.scene.add.container(195, 411);
+    this.powerUpBtns = {};
+
+    const types = ['magnet', 'slowmo', 'multiplier', 'shield', 'precision'];
+    const startX = -130;
+    const spacing = 65;
+
+    types.forEach((type, idx) => {
+      const x = startX + (idx * spacing);
+      const conf = POWER_UPS[type];
+      const btn = this.scene.add.container(x, 0);
+
+      const circle = this.scene.add.graphics();
+      circle.fillStyle(0xFFFFFF, 0.95);
+      circle.fillCircle(0, 0, 19);
+      circle.lineStyle(2, 0xE3D0F5, 1);
+      circle.strokeCircle(0, 0, 19);
+      btn.add(circle);
+
+      const icon = this.scene.add.text(0, -1, conf.icon, {
+        fontSize: '18px'
+      }).setOrigin(0.5);
+      btn.add(icon);
+
+      // Badge count
+      const count = saveManager.getPowerUpCount(type);
+      const badge = this.scene.add.graphics();
+      badge.fillStyle(parseInt(conf.color.replace('#', '0x'), 16), 1);
+      badge.fillCircle(12, 10, 8);
+      btn.add(badge);
+
+      const badgeText = this.scene.add.text(12, 10, String(count), {
+        fontFamily: 'Fredoka, sans-serif',
+        fontSize: '10px',
+        fontWeight: '700',
+        color: '#FFFFFF'
+      }).setOrigin(0.5);
+      btn.add(badgeText);
+
+      btn.setSize(38, 38);
+      btn.setInteractive(new Phaser.Geom.Circle(0, 0, 19), Phaser.Geom.Circle.Contains);
+      btn.input.cursor = 'pointer';
+      btn.on('pointerdown', () => {
+        this.onPowerUpClick(type);
+        this.refreshPowerUpCounts();
+      });
+
+      btn.badgeText = badgeText;
+      btn.circle = circle;
+      btn.conf = conf;
+      this.powerUpBtns[type] = btn;
+      this.powerUpBarContainer.add(btn);
+    });
+
+    this.add(this.powerUpBarContainer);
+  }
+
+  refreshPowerUpCounts() {
+    if (!this.powerUpBtns) return;
+    for (const type in this.powerUpBtns) {
+      const count = saveManager.getPowerUpCount(type);
+      if (this.powerUpBtns[type].badgeText) {
+        this.powerUpBtns[type].badgeText.setText(String(count));
+      }
+    }
+  }
+
+  highlightActivePowerUp(type, isActive) {
+    if (!this.powerUpBtns || !this.powerUpBtns[type]) return;
+    const btn = this.powerUpBtns[type];
+    const circle = btn.circle;
+    circle.clear();
+    circle.fillStyle(0xFFFFFF, 0.95);
+    circle.fillCircle(0, 0, 19);
+    if (isActive) {
+      const activeColor = parseInt((btn.conf.color || '#38C964').replace('#', '0x'), 16);
+      circle.lineStyle(3, activeColor, 1);
+    } else {
+      circle.lineStyle(2, 0xE3D0F5, 1);
+    }
+    circle.strokeCircle(0, 0, 19);
   }
 
   createPauseButton() {
@@ -90,7 +226,6 @@ export class HUD extends Phaser.GameObjects.Container {
   }
 
   createLifeHearts(livesCount) {
-    // Heart pill container (top: 78, right: 16)
     this.heartsContainer = this.scene.add.container(348, 97);
 
     this.heartShadow = this.scene.add.graphics();
@@ -122,7 +257,6 @@ export class HUD extends Phaser.GameObjects.Container {
         this.hearts[i].setTexture('heart_full');
       } else {
         if (this.hearts[i].texture.key === 'heart_full') {
-          // Poof animation on lost life
           this.scene.tweens.add({
             targets: this.hearts[i],
             scale: 1.4,
@@ -137,21 +271,6 @@ export class HUD extends Phaser.GameObjects.Container {
           this.hearts[i].setTexture('heart_empty');
         }
       }
-    }
-  }
-
-  restoreLifeAnimation(newLifeCount) {
-    this.updateLives(newLifeCount);
-    const targetHeart = this.hearts[newLifeCount - 1];
-    if (targetHeart) {
-      this.scene.tweens.add({
-        targets: targetHeart,
-        scale: 1.6,
-        duration: 250,
-        yoyo: true,
-        repeat: 1,
-        ease: 'Back.easeOut'
-      });
     }
   }
 
@@ -197,7 +316,6 @@ export class HUD extends Phaser.GameObjects.Container {
       duration: 220,
       ease: 'Back.easeOut',
       onComplete: () => {
-        // Continuous subtle pulsing when high combo is active
         if (multiplier >= 3) {
           this.scene.tweens.add({
             targets: this.comboContainer,
@@ -218,7 +336,6 @@ export class HUD extends Phaser.GameObjects.Container {
   }
 
   createPacket() {
-    // Packet illustration positioned at bottom center (x: 195, y: 770)
     this.packetImage = this.scene.add.image(195, 770, 'packet_ui');
     this.packetImage.setDisplaySize(240, 170);
     this.add(this.packetImage);
@@ -295,7 +412,6 @@ export class HUD extends Phaser.GameObjects.Container {
     }).setOrigin(0.5);
     this.guideContainer.add(text2);
 
-    // Floating bounce
     this.scene.tweens.add({
       targets: this.guideContainer,
       y: 752,
@@ -325,7 +441,6 @@ export class HUD extends Phaser.GameObjects.Container {
     this.scoreValueText.setText(score.toLocaleString());
     this.highScoreText.setText(`Best ${highScore.toLocaleString()}`);
 
-    // Micro punch animation for score feedback
     this.scene.tweens.killTweensOf(this.scoreValueText);
     this.scoreValueText.setScale(1.18);
     this.scene.tweens.add({
@@ -334,5 +449,9 @@ export class HUD extends Phaser.GameObjects.Container {
       duration: 160,
       ease: 'Back.easeOut'
     });
+
+    if (this.levelData) {
+      this.updateLevelStars(score);
+    }
   }
 }

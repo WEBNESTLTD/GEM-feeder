@@ -5,6 +5,10 @@ import { HomeScene } from './scenes/HomeScene.js';
 import { TutorialScene } from './scenes/TutorialScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { GameOverScene } from './scenes/GameOverScene.js';
+import { WorldSelectScene } from './scenes/WorldSelectScene.js';
+import { LevelSelectScene } from './scenes/LevelSelectScene.js';
+import { ShopScene } from './scenes/ShopScene.js';
+import { MissionScene } from './scenes/MissionScene.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -31,9 +35,13 @@ const config = {
     BootScene,
     PreloadScene,
     HomeScene,
+    WorldSelectScene,
+    LevelSelectScene,
     TutorialScene,
     GameScene,
-    GameOverScene
+    GameOverScene,
+    ShopScene,
+    MissionScene
   ]
 };
 

@@ -1,3 +1,5 @@
+import { saveManager } from '../storage/SaveManager.js';
+
 export class Character extends Phaser.GameObjects.Container {
   constructor(scene, x, y) {
     super(scene, x, y);
@@ -8,10 +10,19 @@ export class Character extends Phaser.GameObjects.Container {
     this.sprite.setDisplaySize(300, 349);
     this.add(this.sprite);
 
+    // Accessory overlay container
+    this.accessoryText = scene.add.text(0, -130, '', {
+      fontSize: '48px'
+    }).setOrigin(0.5);
+    this.add(this.accessoryText);
+
     scene.add.existing(this);
 
     this.currentFrameIndex = 0;
     this.isChewing = false;
+
+    // Apply equipped cosmetics
+    this.applyCosmetics();
 
     // Subtle idle breathing motion
     this.idleTween = scene.tweens.add({
@@ -22,6 +33,32 @@ export class Character extends Phaser.GameObjects.Container {
       repeat: -1,
       ease: 'Sine.easeInOut'
     });
+  }
+
+  applyCosmetics() {
+    const equipped = saveManager.getEquipped();
+
+    // 1. Accessory
+    if (equipped.accessory === 'acc_bow') {
+      this.accessoryText.setText('🎀').setY(-130);
+    } else if (equipped.accessory === 'acc_glasses') {
+      this.accessoryText.setText('🕶️').setY(-50);
+    } else if (equipped.accessory === 'acc_crown') {
+      this.accessoryText.setText('👑').setY(-135);
+    } else {
+      this.accessoryText.setText('');
+    }
+
+    // 2. Outfit tint
+    if (equipped.outfit === 'outfit_strawberry') {
+      this.sprite.setTint(0xFFD0E6);
+    } else if (equipped.outfit === 'outfit_mint') {
+      this.sprite.setTint(0xD4F8D4);
+    } else if (equipped.outfit === 'outfit_golden') {
+      this.sprite.setTint(0xFFF0B3);
+    } else {
+      this.sprite.clearTint();
+    }
   }
 
   setMouthFrame(index) {
