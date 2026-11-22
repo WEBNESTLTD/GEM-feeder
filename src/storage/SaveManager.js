@@ -13,6 +13,8 @@ export class SaveManager {
       highScore: 0,
       soundEnabled: true,
       musicEnabled: true,
+      musicVolume: 0.7,
+      sfxVolume: 0.85,
       vibrationEnabled: true,
       reducedMotion: false,
       coins: 50, // Starter bonus
@@ -125,6 +127,28 @@ export class SaveManager {
   setMusicEnabled(enabled) {
     this.state.musicEnabled = Boolean(enabled);
     this.save();
+  }
+
+  getMusicVolume() {
+    return this.state.musicVolume !== undefined ? this.state.musicVolume : 0.7;
+  }
+
+  setMusicVolume(volume) {
+    const vol = Math.max(0, Math.min(1, Number(volume) || 0));
+    this.state.musicVolume = vol;
+    this.save();
+    return vol;
+  }
+
+  getSFXVolume() {
+    return this.state.sfxVolume !== undefined ? this.state.sfxVolume : 0.85;
+  }
+
+  setSFXVolume(volume) {
+    const vol = Math.max(0, Math.min(1, Number(volume) || 0));
+    this.state.sfxVolume = vol;
+    this.save();
+    return vol;
   }
 
   getVibrationEnabled() {

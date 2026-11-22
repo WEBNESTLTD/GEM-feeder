@@ -60,6 +60,7 @@ export class LevelSelectScene extends Phaser.Scene {
   }
 
   createLevelGrid(levels) {
+    this.levelButtons = [];
     const colX = [80, 195, 310];
     const startY = 160;
     const spacingY = 120;
@@ -70,8 +71,10 @@ export class LevelSelectScene extends Phaser.Scene {
       const x = colX[col];
       const y = startY + (row * spacingY);
 
-      this.createLevelNode(x, y, lvl);
+      const node = this.createLevelNode(x, y, lvl);
+      this.levelButtons.push(node);
     });
+    return this.levelButtons;
   }
 
   createLevelNode(x, y, lvl) {
@@ -132,6 +135,7 @@ export class LevelSelectScene extends Phaser.Scene {
       }).setOrigin(0.5);
       node.add(lock);
     }
+    return node;
   }
 
   createBackButton() {

@@ -10,18 +10,47 @@ export class TutorialScene extends Phaser.Scene {
     // Background
     this.add.image(195, 422, 'pastel_bg');
 
+    // Back to Home Button
+    const backBtn = this.add.container(36, 40);
+    const backShadow = this.add.graphics();
+    backShadow.fillStyle(0xE3D0F5, 1);
+    backShadow.fillCircle(0, 2, 20);
+    backBtn.add(backShadow);
+
+    const backBg = this.add.graphics();
+    backBg.fillStyle(0xFFFFFF, 1);
+    backBg.fillCircle(0, 0, 20);
+    backBtn.add(backBg);
+
+    const backArrow = this.add.text(0, -2, '←', {
+      fontFamily: 'Fredoka, sans-serif',
+      fontSize: '22px',
+      fontWeight: '700',
+      color: COLORS.ink
+    }).setOrigin(0.5);
+    backBtn.add(backArrow);
+
+    backBtn.setSize(40, 40);
+    backBtn.setInteractive(new Phaser.Geom.Circle(0, 0, 20), Phaser.Geom.Circle.Contains);
+    backBtn.input.cursor = 'pointer';
+    backBtn.on('pointerdown', () => {
+      audioManager.playButtonClick();
+      this.scene.start('HomeScene');
+    });
+    this.backButton = backBtn;
+
     // Title Card
     const titleShadow = this.add.graphics();
     titleShadow.fillStyle(0xE3D0F5, 1);
-    titleShadow.fillRoundedRect(35, 64, 320, 64, 24);
+    titleShadow.fillRoundedRect(35, 74, 320, 60, 22);
 
     const titleBg = this.add.graphics();
     titleBg.fillStyle(0xFFFFFF, 1);
-    titleBg.fillRoundedRect(35, 60, 320, 64, 24);
+    titleBg.fillRoundedRect(35, 70, 320, 60, 22);
 
-    this.add.text(195, 92, 'HOW TO PLAY', {
+    this.add.text(195, 100, 'HOW TO PLAY', {
       fontFamily: 'Fredoka, sans-serif',
-      fontSize: '30px',
+      fontSize: '28px',
       fontWeight: '700',
       color: COLORS.ink
     }).setOrigin(0.5);
@@ -48,6 +77,7 @@ export class TutorialScene extends Phaser.Scene {
       }
     ];
 
+    this.cards = steps;
     steps.forEach((step, idx) => {
       const y = 175 + (idx * 155);
       this.createStepCard(195, y, step);
@@ -102,6 +132,21 @@ export class TutorialScene extends Phaser.Scene {
     });
     container.add(desc);
 
+    // Visual accent on each step
+    if (step.num === '1') {
+      const miniCandy = this.add.image(120, 0, 'candy_red');
+      miniCandy.setDisplaySize(30, 30);
+      container.add(miniCandy);
+      this.tweens.add({
+        targets: miniCandy,
+        scale: 1.15,
+        duration: 800,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+    }
+
     // Animated swipe arrow on step 2
     if (step.num === '2') {
       const swipeDot = this.add.graphics();
@@ -116,6 +161,21 @@ export class TutorialScene extends Phaser.Scene {
         duration: 900,
         repeat: -1,
         ease: 'Cubic.easeOut'
+      });
+    }
+
+    // Star sparkle on step 3
+    if (step.num === '3') {
+      const miniStar = this.add.text(120, 0, '★', { fontSize: '28px', color: '#FFD93D' }).setOrigin(0.5);
+      container.add(miniStar);
+      this.tweens.add({
+        targets: miniStar,
+        scale: 1.25,
+        rotation: 0.3,
+        duration: 700,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
       });
     }
   }

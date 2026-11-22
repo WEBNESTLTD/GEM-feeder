@@ -11,6 +11,9 @@ import { levelManager } from '../systems/LevelManager.js';
 import { PowerUpManager } from '../systems/PowerUpManager.js';
 import { missionManager } from '../systems/MissionManager.js';
 import { achievementManager } from '../systems/AchievementManager.js';
+import { EnvironmentManager } from '../systems/EnvironmentManager.js';
+import { ParticleEngine } from '../systems/ParticleEngine.js';
+import { TrajectoryPhysics } from '../systems/TrajectoryPhysics.js';
 import { HUD } from '../ui/HUD.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
 import { SettingsMenu } from '../ui/SettingsMenu.js';
@@ -54,16 +57,15 @@ export class GameScene extends Phaser.Scene {
       perfectRadius: 22
     });
 
-    // 3. Background and Shelf Divider (matching reference)
-    this.add.image(195, 422, 'pastel_bg');
+    // 3. Layered Parallax Environment & Shelf
+    const worldId = this.levelData ? this.levelData.worldId : 'world_1';
+    this.environmentManager = new EnvironmentManager(this, {
+      worldId,
+      reducedMotion: saveManager.getReducedMotion()
+    });
 
-    // Reference shelf divider (left: -10, top: 392, width: 410, height: 38)
-    const shelfShadow = this.add.graphics();
-    shelfShadow.fillStyle(0xE3D0F5, 0.9);
-    shelfShadow.fillRoundedRect(-10, 396, 410, 38, 19);
-    const shelf = this.add.graphics();
-    shelf.fillStyle(0xFFFFFF, 0.9);
-    shelf.fillRoundedRect(-10, 392, 410, 38, 19);
+    // Object-Pooled Particle Engine
+    this.particleEngine = new ParticleEngine(this);
 
     // Dynamic moving character variables for difficulty ramp (score >= 500 or level sway)
     this.characterBaseX = 195;
@@ -73,15 +75,6 @@ export class GameScene extends Phaser.Scene {
     // Slingshot rubber band graphics
     this.slingGraphics = this.add.graphics();
     this.slingGraphics.setDepth(18);
-
-    // Decorative background bubbles
-    const bgBubbles = this.add.graphics();
-    bgBubbles.fillStyle(0xFFFFFF, 0.35);
-    bgBubbles.fillCircle(40, 520, 90);
-    bgBubbles.fillStyle(0xFFD0E6, 0.5);
-    bgBubbles.fillCircle(360, 600, 70);
-    bgBubbles.fillStyle(0xFFFFFF, 0.35);
-    bgBubbles.fillCircle(330, 140, 50);
 
     // 4. Character (positioned at x: 195, y: 240)
     this.character = new Character(this, 195, 240);
@@ -167,6 +160,8 @@ export class GameScene extends Phaser.Scene {
         this.pointerStartX = pointer.x;
         this.pointerStartY = pointer.y;
         this.pointerStartTime = this.time.now;
+        audioManager.playPickup();
+        this.character.setAnticipation(true);
       }
     });
 
@@ -185,6 +180,7 @@ export class GameScene extends Phaser.Scene {
       this.isPointerDown = false;
       this.aimGraphics.clear();
       this.slingGraphics.clear();
+      this.character.setAnticipation(false);
       this.character.resetToIdle();
 
       const readyCandy = this.spawner.getActiveCandy();
@@ -209,6 +205,7 @@ export class GameScene extends Phaser.Scene {
       // Launch candy using unified calculation
       if (throwData.isValid && throwData.vy < -50) {
         this.launchActiveCandy(candy, throwData.vx, throwData.vy);
+        audioManager.playLaunch();
         audioManager.triggerHaptic(25);
       }
     });
@@ -247,51 +244,37 @@ export class GameScene extends Phaser.Scene {
 
     if (!throwData.isValid) return;
 
-    // Simulate forward path using the exact launch velocity and standard gravity
-    const dt = 0.04;
-    const gravity = PHYSICS.GRAVITY_Y;
     const isPrecision = this.powerUpManager.isPrecisionEnabled();
-    let currX = candy.x;
-    let currY = candy.y;
-    let simVx = throwData.vx;
-    let simVy = throwData.vy;
+    const timeScale = this.powerUpManager.getTimeScale();
 
-    let isAimedAtMouth = false;
-    let testX = candy.x;
-    let testY = candy.y;
-    let testVx = throwData.vx;
-    let testVy = throwData.vy;
+    // Use authoritative TrajectoryPhysics calculation
+    const trajectory = TrajectoryPhysics.generateTrajectory({
+      startX: candy.x,
+      startY: candy.y,
+      vx: throwData.vx,
+      vy: throwData.vy,
+      count: isPrecision ? 24 : 14,
+      timeScale,
+      powerUpManager: this.powerUpManager,
+      mouthZone: this.collisionManager.getMouthZone()
+    });
 
-    const simLimit = isPrecision ? 50 : 30;
-    for (let j = 0; j < simLimit; j++) {
-      testX += testVx * dt;
-      testY += testVy * dt + 0.5 * gravity * dt * dt;
-      testVy += gravity * dt;
-      const collisionCheck = this.collisionManager.checkMouthCollision(testX, testY);
-      if (collisionCheck.hit) {
-        isAimedAtMouth = true;
-        break;
-      }
+    const isAimedAtMouth = trajectory.hitsMouth;
+    if (isAimedAtMouth) {
+      this.character.setAnticipation(true);
     }
 
-    const arcColor = isAimedAtMouth ? (isPrecision ? 0xFF5CAA : 0x38C964) : 0x8E5BD6; // High-contrast trajectory lock
+    const arcColor = isAimedAtMouth ? (isPrecision ? 0xFF5CAA : 0x38C964) : 0x8E5BD6;
     const dotColor = isAimedAtMouth ? 0xFFFFFF : (isPrecision ? 0xFF5CAA : 0xFFD93D);
     this.aimGraphics.lineStyle(isPrecision ? 5 : 4, arcColor, isAimedAtMouth ? 0.95 : 0.7);
 
-    const dotCount = isPrecision ? 22 : 12;
-    for (let i = 0; i < dotCount; i++) {
-      const nextX = currX + simVx * dt;
-      const nextY = currY + simVy * dt + 0.5 * gravity * dt * dt;
-      simVy += gravity * dt;
-
-      // Draw glowing dotted dash
+    const points = trajectory.points;
+    for (let i = 0; i < points.length; i++) {
+      const pt = points[i];
       if (i % 2 === 0) {
         this.aimGraphics.fillStyle(dotColor, isAimedAtMouth ? 1 : 0.85);
-        this.aimGraphics.fillCircle(nextX, nextY, (isAimedAtMouth ? 6.5 : 5) - (i * 0.15));
+        this.aimGraphics.fillCircle(pt.x, pt.y, (isAimedAtMouth ? 6.5 : 5) - (i * 0.12));
       }
-
-      currX = nextX;
-      currY = nextY;
     }
   }
 
@@ -319,6 +302,14 @@ export class GameScene extends Phaser.Scene {
 
     const timeScale = this.powerUpManager.getTimeScale();
     const effDelta = delta * timeScale;
+
+    // Update animated environment layers and particle engine
+    if (this.environmentManager) {
+      this.environmentManager.update(time, delta);
+    }
+    if (this.particleEngine) {
+      this.particleEngine.update(effDelta);
+    }
 
     // Difficulty ramp or level sway
     const currentScore = this.scoreManager.getScore();
@@ -360,6 +351,7 @@ export class GameScene extends Phaser.Scene {
       // 1. Character mouth anticipation when candy approaches
       if (candyY < 380 && candyY > 200 && !this.character.isChewing) {
         const proximity = Phaser.Math.Clamp(1 - Math.abs(candyY - 240) / 140, 0, 1);
+        this.character.setAnticipation(true);
         this.character.openMouthGradual(proximity);
       }
 
@@ -386,6 +378,7 @@ export class GameScene extends Phaser.Scene {
     this.activeFlyingCandy = null;
 
     candy.consume();
+    this.character.setAnticipation(false);
 
     // Haptic feedback for successful catch
     if (isPerfect) {
@@ -427,19 +420,26 @@ export class GameScene extends Phaser.Scene {
       achievementManager.recordProgress('combo_master');
     }
 
-    // Character eating or celebration animation
+    // Character eating or celebration animation & emote badge
     if (isPerfect) {
+      this.character.showEmoteBadge('sparkle');
       this.character.playCelebrationAnimation();
     } else {
       this.character.playEatingAnimation();
     }
 
-    // Audio & Visual popups
+    // Audio & Visual popups & Object-pooled particles
     if (isPerfect) {
       audioManager.playPerfectHit();
+      if (this.particleEngine) {
+        this.particleEngine.emitGoldenCatch(candy.x, candy.y);
+      }
       this.showFloatingPopup(candy.x, candy.y - 20, `+${scoreInfo.addedPoints} Perfect!`, 0xD81B7A);
     } else {
       audioManager.playHit();
+      if (this.particleEngine) {
+        this.particleEngine.emitCatch(candy.x, candy.y, candy.candyData.color);
+      }
       this.showFloatingPopup(candy.x, candy.y - 20, `+${scoreInfo.addedPoints}`, 0x4B1F86);
     }
 
@@ -447,15 +447,19 @@ export class GameScene extends Phaser.Scene {
       audioManager.playCombo();
     }
 
-    // Spawn celebration particle burst
-    this.spawnHitParticles(candy.x, candy.y, candy.candyData.color, isPerfect);
-
     // Save high score if beaten
     saveManager.saveHighScore(this.scoreManager.getHighScore());
 
     // Level Mode Win Condition Check
     if (this.levelData && this.scoreManager.getScore() >= this.levelData.targetScore && !this.isLevelWon) {
       this.isLevelWon = true;
+      if (this.particleEngine) {
+        this.particleEngine.emitConfetti();
+      }
+      this.character.showEmoteBadge('crown');
+      this.character.playCelebration();
+      audioManager.playFanfare();
+
       const res = levelManager.completeLevel(this.levelId, this.scoreManager.getScore());
       missionManager.recordEvent('level_complete');
       if (res.stars === 3) {
@@ -490,6 +494,8 @@ export class GameScene extends Phaser.Scene {
       candy.destroy();
     }
 
+    this.character.setAnticipation(false);
+
     // Power-Up Shield protection check
     if (this.powerUpManager.consumeShield()) {
       audioManager.playTone(600, 'sine', 0.25, 0.25);
@@ -506,8 +512,13 @@ export class GameScene extends Phaser.Scene {
     // Haptic feedback for miss: heavy buzz
     audioManager.triggerHaptic(120);
 
-    audioManager.playMiss();
+    audioManager.playMissThud();
+    this.character.showEmoteBadge('sweat');
     this.character.playMissReaction();
+
+    if (this.particleEngine) {
+      this.particleEngine.emitMiss(candy ? candy.x : 195, candy ? candy.y : 350);
+    }
 
     // Combo reset
     this.comboManager.registerMiss();
@@ -710,12 +721,14 @@ export class GameScene extends Phaser.Scene {
 
   restartGame() {
     this.pauseMenu.hide();
+    if (this.particleEngine) this.particleEngine.clear();
     if (this.powerUpManager) this.powerUpManager.reset();
     this.scene.restart();
   }
 
   goToHome() {
     this.pauseMenu.hide();
+    if (this.particleEngine) this.particleEngine.clear();
     if (this.powerUpManager) this.powerUpManager.reset();
     this.scene.start('HomeScene');
   }

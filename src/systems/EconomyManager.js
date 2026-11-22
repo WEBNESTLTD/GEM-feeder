@@ -67,6 +67,14 @@ export class EconomyManager {
     this.saveManager.unlockCosmetic(itemId);
     return { success: true, newBalance: this.saveManager.getCoins() };
   }
+
+  purchasePowerUp(type) {
+    return this.buyPowerUp(type);
+  }
+
+  purchaseCosmetic(category, itemId) {
+    return this.buyCosmetic(category, itemId);
+  }
 }
 
 export const economyManager = new EconomyManager();

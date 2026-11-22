@@ -5,12 +5,23 @@ export class Character extends Phaser.GameObjects.Container {
     super(scene, x, y);
     this.scene = scene;
 
-    // Sprite displaying the 9 mouth frames (mouth_0.png through mouth_8.png)
+    // 1. Sprite displaying the 9 mouth frames (mouth_0.png through mouth_8.png)
     this.sprite = scene.add.image(0, 0, 'mouth_0');
     this.sprite.setDisplaySize(300, 349);
     this.add(this.sprite);
 
-    // Accessory overlay container
+    // 2. Procedural Eyelids for Natural Blinking
+    this.eyelids = scene.add.graphics();
+    this.eyelids.setVisible(false);
+    this.add(this.eyelids);
+
+    // 3. Emotive Expression Overlay (Sweat drop on miss, sparkles on perfect)
+    this.emotionIcon = scene.add.text(50, -80, '', {
+      fontSize: '28px'
+    }).setOrigin(0.5);
+    this.add(this.emotionIcon);
+
+    // 4. Accessory overlay container
     this.accessoryText = scene.add.text(0, -130, '', {
       fontSize: '48px'
     }).setOrigin(0.5);
@@ -20,18 +31,56 @@ export class Character extends Phaser.GameObjects.Container {
 
     this.currentFrameIndex = 0;
     this.isChewing = false;
+    this.isAnticipating = false;
+    this.isDisappointed = false;
+    this.blinkTimer = null;
 
     // Apply equipped cosmetics
     this.applyCosmetics();
 
     // Subtle idle breathing motion
-    this.idleTween = scene.tweens.add({
-      targets: this.sprite,
-      y: -4,
-      duration: 1800,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
+    if (!saveManager.getReducedMotion()) {
+      this.idleTween = scene.tweens.add({
+        targets: this.sprite,
+        y: -4,
+        duration: 1800,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+      this.startBlinkCycle();
+    }
+  }
+
+  startBlinkCycle() {
+    if (saveManager.getReducedMotion() || !this.scene || !this.scene.time) return;
+
+    const nextBlink = Phaser.Math.Between(3200, 5200);
+    this.blinkTimer = this.scene.time.delayedCall(nextBlink, () => {
+      this.triggerBlink();
+      this.startBlinkCycle();
+    });
+  }
+
+  triggerBlink() {
+    if (this.isChewing || this.currentFrameIndex >= 7) return;
+
+    // Draw closed eyelids matching character skin/eye position
+    this.eyelids.clear();
+    this.eyelids.fillStyle(0xF4C2C2, 1); // Matching character skin tone
+    this.eyelids.fillRoundedRect(-52, -54, 38, 14, 7);
+    this.eyelids.fillRoundedRect(14, -54, 38, 14, 7);
+
+    // Dark eyelash lines
+    this.eyelids.lineStyle(2.5, 0x3D1E47, 1);
+    this.eyelids.strokeRoundedRect(-52, -50, 38, 2, 1);
+    this.eyelids.strokeRoundedRect(14, -50, 38, 2, 1);
+
+    this.eyelids.setVisible(true);
+
+    this.scene.time.delayedCall(120, () => {
+      this.eyelids.setVisible(false);
+      this.eyelids.clear();
     });
   }
 
@@ -67,24 +116,36 @@ export class Character extends Phaser.GameObjects.Container {
     this.sprite.setTexture(`mouth_${clamped}`);
   }
 
+  setAnticipation(active) {
+    if (this.isChewing || this.isDisappointed) return;
+    if (active && !this.isAnticipating) {
+      this.isAnticipating = true;
+      if (this.currentFrameIndex === 0) {
+        this.setMouthFrame(1); // Slightly open mouth in anticipation
+      }
+    } else if (!active && this.isAnticipating) {
+      this.isAnticipating = false;
+      if (this.currentFrameIndex === 1) {
+        this.setMouthFrame(0);
+      }
+    }
+  }
+
   openMouthGradual(normalizedProgress) {
-    if (this.isChewing) return;
-    // Map progress 0..1 to frames 0..8
+    if (this.isChewing || this.isDisappointed) return;
     const frame = Math.floor(normalizedProgress * 8);
     this.setMouthFrame(frame);
   }
 
   playEatingAnimation(onComplete) {
     this.isChewing = true;
+    this.isAnticipating = false;
+    this.isDisappointed = false;
+    this.emotionIcon.setText('');
 
-    // Frame sequence: 8 -> 5 -> 2 -> 0 -> 4 -> 0 (eating chew)
+    // Frame sequence: 8 -> 6 -> 4 -> 1 -> 0 -> 3 -> 0 (eating chew)
     const chewSequence = [8, 6, 4, 1, 0, 3, 0];
     let step = 0;
-
-    // Crunchy munch sound effect
-    if (this.scene && this.scene.sound) {
-      // Trigger through AudioManager in GameScene
-    }
 
     const chewTimer = this.scene.time.addEvent({
       delay: 70,
@@ -101,56 +162,118 @@ export class Character extends Phaser.GameObjects.Container {
     });
 
     // Happy character bounce
-    this.scene.tweens.add({
-      targets: this.sprite,
-      scaleX: 1.05,
-      scaleY: 0.95,
-      duration: 120,
-      yoyo: true,
-      repeat: 2,
-      ease: 'Quad.easeOut'
-    });
+    if (!saveManager.getReducedMotion()) {
+      this.scene.tweens.add({
+        targets: this.sprite,
+        scaleX: 1.05,
+        scaleY: 0.95,
+        duration: 120,
+        yoyo: true,
+        repeat: 2,
+        ease: 'Quad.easeOut'
+      });
+    }
   }
 
   playCelebrationAnimation() {
     this.isChewing = true;
+    this.isAnticipating = false;
+    this.isDisappointed = false;
     this.setMouthFrame(8);
+    this.emotionIcon.setText('✨');
 
     // Triumphant double hop
-    this.scene.tweens.add({
-      targets: this.sprite,
-      y: -18,
-      scaleX: 1.08,
-      scaleY: 0.92,
-      duration: 140,
-      yoyo: true,
-      repeat: 2,
-      ease: 'Back.easeOut',
-      onComplete: () => {
-        this.playEatingAnimation();
-      }
-    });
+    if (!saveManager.getReducedMotion()) {
+      this.scene.tweens.add({
+        targets: this.sprite,
+        y: -22,
+        scaleX: 1.09,
+        scaleY: 0.91,
+        duration: 140,
+        yoyo: true,
+        repeat: 2,
+        ease: 'Back.easeOut',
+        onComplete: () => {
+          this.emotionIcon.setText('');
+          this.playEatingAnimation();
+        }
+      });
+    } else {
+      this.playEatingAnimation();
+    }
   }
 
   playMissReaction() {
     if (this.isChewing) return;
-    // Reset to closed mouth with slight disappointed twitch
+    this.isDisappointed = true;
     this.setMouthFrame(0);
-    this.scene.tweens.add({
-      targets: this.sprite,
-      x: -6,
-      duration: 60,
-      yoyo: true,
-      repeat: 3,
-      ease: 'Sine.easeInOut',
-      onComplete: () => {
-        this.sprite.x = 0;
+    this.emotionIcon.setText('💧');
+
+    // Subtle sad droop
+    if (!saveManager.getReducedMotion()) {
+      this.scene.tweens.add({
+        targets: this.sprite,
+        y: 12,
+        rotation: 0.04,
+        duration: 250,
+        yoyo: true,
+        ease: 'Sine.easeOut',
+        onComplete: () => {
+          this.sprite.y = 0;
+          this.sprite.rotation = 0;
+          this.isDisappointed = false;
+          this.emotionIcon.setText('');
+        }
+      });
+    } else {
+      this.scene.time.delayedCall(400, () => {
+        this.isDisappointed = false;
+        this.emotionIcon.setText('');
+      });
+    }
+  }
+
+  showEmoteBadge(type) {
+    const emojis = {
+      sparkle: '✨',
+      crown: '👑',
+      sweat: '💧',
+      heart: '💖'
+    };
+    this.emotionIcon.setText(emojis[type] || type || '');
+    this.scene.time.delayedCall(1200, () => {
+      if (this.emotionIcon && this.emotionIcon.active) {
+        this.emotionIcon.setText('');
       }
     });
   }
 
+  playCelebration() {
+    this.playVictoryDance();
+  }
+
+  playVictoryDance() {
+    this.setMouthFrame(8);
+    this.emotionIcon.setText('👑');
+    if (!saveManager.getReducedMotion()) {
+      this.scene.tweens.add({
+        targets: this.sprite,
+        y: -15,
+        scaleX: 1.06,
+        scaleY: 0.94,
+        duration: 250,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+    }
+  }
+
   resetToIdle() {
     this.isChewing = false;
+    this.isAnticipating = false;
+    this.isDisappointed = false;
+    this.emotionIcon.setText('');
     this.setMouthFrame(0);
     if (this.aimTween) {
       this.aimTween.stop();
@@ -160,19 +283,16 @@ export class Character extends Phaser.GameObjects.Container {
   }
 
   trackAim(pointerX, pointerY) {
-    if (this.isChewing) return;
-    // Eye tracking / subtle head tilt towards the aiming position
-    // Center is 195; clamp target rotation smoothly
+    if (this.isChewing || this.isDisappointed) return;
     const dx = pointerX - 195;
     const targetAngle = Phaser.Math.Clamp(dx / 300, -1, 1) * 0.08;
-
-    // Use direct interpolation (LERP) instead of creating unbounded tweens on every pointermove
     this.sprite.rotation = Phaser.Math.Linear(this.sprite.rotation, targetAngle, 0.4);
   }
 
   preDestroy() {
     if (this.idleTween) this.idleTween.stop();
     if (this.aimTween) this.aimTween.stop();
+    if (this.blinkTimer) this.blinkTimer.remove(false);
     super.preDestroy();
   }
 }

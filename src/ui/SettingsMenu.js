@@ -28,79 +28,110 @@ export class SettingsMenu extends Phaser.GameObjects.Container {
 
     const shadow = this.scene.add.graphics();
     shadow.fillStyle(0xE3D0F5, 1);
-    shadow.fillRoundedRect(-140, -186, 280, 372, 24);
+    shadow.fillRoundedRect(-145, -236, 290, 472, 24);
     this.dialog.add(shadow);
 
     const bg = this.scene.add.graphics();
     bg.fillStyle(0xFFFFFF, 1);
-    bg.fillRoundedRect(-140, -190, 280, 372, 24);
+    bg.fillRoundedRect(-145, -240, 290, 472, 24);
     this.dialog.add(bg);
 
-    const title = this.scene.add.text(0, -145, 'SETTINGS', {
+    const title = this.scene.add.text(0, -200, 'SETTINGS', {
       fontFamily: 'Fredoka, sans-serif',
-      fontSize: '28px',
+      fontSize: '26px',
       fontWeight: '700',
       color: COLORS.ink
     }).setOrigin(0.5);
     this.dialog.add(title);
 
-    // 1. Sound FX toggle
-    this.soundToggleText = this.scene.add.text(0, -95, `Sound FX: ${audioManager.isSoundEnabled() ? 'ON' : 'OFF'}`, {
+    // 1. Sound FX Section
+    this.soundToggleText = this.scene.add.text(0, -155, `Sound FX: ${audioManager.isSoundEnabled() ? 'ON' : 'OFF'} (${Math.round(audioManager.getSFXVolume() * 100)}%)`, {
       fontFamily: 'Fredoka, sans-serif',
-      fontSize: '18px',
+      fontSize: '15px',
       fontWeight: '600',
       color: COLORS.ink
     }).setOrigin(0.5);
     this.dialog.add(this.soundToggleText);
 
-    const soundBtn = this.createPillBtn(0, -65, 'Toggle Sound', () => {
+    const soundRow = this.createSettingRow(0, -125, 'Toggle', () => {
       const active = audioManager.toggleSound();
-      this.soundToggleText.setText(`Sound FX: ${active ? 'ON' : 'OFF'}`);
+      this.updateTexts();
+    }, () => {
+      const current = audioManager.getSFXVolume();
+      audioManager.setSFXVolume(Math.max(0, current - 0.2));
+      this.updateTexts();
+    }, () => {
+      const current = audioManager.getSFXVolume();
+      audioManager.setSFXVolume(Math.min(1, current + 0.2));
+      audioManager.playButtonClick();
+      this.updateTexts();
     });
-    this.dialog.add(soundBtn);
+    this.dialog.add(soundRow);
 
-    // 2. Music toggle
-    this.musicToggleText = this.scene.add.text(0, -20, `Music: ${audioManager.isMusicEnabled() ? 'ON' : 'OFF'}`, {
+    // 2. Music Section
+    this.musicToggleText = this.scene.add.text(0, -70, `Music: ${audioManager.isMusicEnabled() ? 'ON' : 'OFF'} (${Math.round(audioManager.getMusicVolume() * 100)}%)`, {
       fontFamily: 'Fredoka, sans-serif',
-      fontSize: '18px',
+      fontSize: '15px',
       fontWeight: '600',
       color: COLORS.ink
     }).setOrigin(0.5);
     this.dialog.add(this.musicToggleText);
 
-    const musicBtn = this.createPillBtn(0, 10, 'Toggle Music', () => {
+    const musicRow = this.createSettingRow(0, -40, 'Toggle', () => {
       const active = audioManager.toggleMusic();
-      this.musicToggleText.setText(`Music: ${active ? 'ON' : 'OFF'}`);
+      this.updateTexts();
+    }, () => {
+      const current = audioManager.getMusicVolume();
+      audioManager.setMusicVolume(Math.max(0, current - 0.2));
+      this.updateTexts();
+    }, () => {
+      const current = audioManager.getMusicVolume();
+      audioManager.setMusicVolume(Math.min(1, current + 0.2));
+      this.updateTexts();
     });
-    this.dialog.add(musicBtn);
+    this.dialog.add(musicRow);
 
-    // 3. Vibration toggle
-    this.vibToggleText = this.scene.add.text(0, 55, `Vibration: ${saveManager.getVibrationEnabled() ? 'ON' : 'OFF'}`, {
+    // 3. Vibration Section
+    this.vibToggleText = this.scene.add.text(0, 15, `Haptic Feedback: ${saveManager.getVibrationEnabled() ? 'ON' : 'OFF'}`, {
       fontFamily: 'Fredoka, sans-serif',
-      fontSize: '18px',
+      fontSize: '15px',
       fontWeight: '600',
       color: COLORS.ink
     }).setOrigin(0.5);
     this.dialog.add(this.vibToggleText);
 
-    const vibBtn = this.createPillBtn(0, 85, 'Toggle Vibration', () => {
+    const vibBtn = this.createPillBtn(0, 45, 'Toggle Vibration', () => {
       const current = saveManager.getVibrationEnabled();
       saveManager.setVibrationEnabled(!current);
-      this.vibToggleText.setText(`Vibration: ${!current ? 'ON' : 'OFF'}`);
-      if (!current) {
-        audioManager.triggerHaptic(30);
-      }
+      if (!current) audioManager.triggerHaptic(30);
+      this.updateTexts();
     });
     this.dialog.add(vibBtn);
 
+    // 4. Reduced Motion Section
+    this.motionToggleText = this.scene.add.text(0, 95, `Reduced Motion: ${saveManager.getReducedMotion() ? 'ON' : 'OFF'}`, {
+      fontFamily: 'Fredoka, sans-serif',
+      fontSize: '15px',
+      fontWeight: '600',
+      color: COLORS.ink
+    }).setOrigin(0.5);
+    this.dialog.add(this.motionToggleText);
+
+    const motionBtn = this.createPillBtn(0, 125, 'Toggle Motion', () => {
+      const current = saveManager.getReducedMotion();
+      saveManager.setReducedMotion(!current);
+      this.updateTexts();
+    });
+    this.dialog.add(motionBtn);
+
     // Close button
-    const closeBtn = this.scene.add.text(0, 145, 'Done', {
+    const closeBtn = this.scene.add.text(0, 190, 'Done', {
       fontFamily: 'Fredoka, sans-serif',
       fontSize: '20px',
       fontWeight: '700',
       color: COLORS.pink
     }).setOrigin(0.5);
-    closeBtn.setInteractive(new Phaser.Geom.Rectangle(-40, -15, 80, 30), Phaser.Geom.Rectangle.Contains);
+    closeBtn.setInteractive(new Phaser.Geom.Rectangle(-45, -15, 90, 30), Phaser.Geom.Rectangle.Contains);
     closeBtn.input.cursor = 'pointer';
     closeBtn.on('pointerdown', () => {
       audioManager.playButtonClick();
@@ -112,29 +143,78 @@ export class SettingsMenu extends Phaser.GameObjects.Container {
     this.add(this.dialog);
   }
 
-  createPillBtn(x, y, text, onClick) {
+  createSettingRow(x, y, toggleLabel, onToggle, onVolDown, onVolUp) {
+    const row = this.scene.add.container(x, y);
+
+    // Vol down button
+    const downBtn = this.createMiniBtn(-90, 0, '–', onVolDown);
+    row.add(downBtn);
+
+    // Main toggle button
+    const toggleBtn = this.createPillBtn(0, 0, toggleLabel, onToggle, 110);
+    row.add(toggleBtn);
+
+    // Vol up button
+    const upBtn = this.createMiniBtn(90, 0, '+', onVolUp);
+    row.add(upBtn);
+
+    return row;
+  }
+
+  createMiniBtn(x, y, label, onClick) {
     const btn = this.scene.add.container(x, y);
 
     const shadow = this.scene.add.graphics();
     shadow.fillStyle(0xE3D0F5, 1);
-    shadow.fillRoundedRect(-80, -14, 160, 32, 16);
+    shadow.fillCircle(0, 2, 16);
+    btn.add(shadow);
+
+    const bg = this.scene.add.graphics();
+    bg.fillStyle(0xF7F2FC, 1);
+    bg.fillCircle(0, 0, 16);
+    btn.add(bg);
+
+    const txt = this.scene.add.text(0, -1, label, {
+      fontFamily: 'Fredoka, sans-serif',
+      fontSize: '18px',
+      fontWeight: '700',
+      color: COLORS.ink
+    }).setOrigin(0.5);
+    btn.add(txt);
+
+    btn.setSize(32, 32);
+    btn.setInteractive(new Phaser.Geom.Circle(0, 0, 16), Phaser.Geom.Circle.Contains);
+    btn.input.cursor = 'pointer';
+    btn.on('pointerdown', () => {
+      onClick();
+    });
+
+    return btn;
+  }
+
+  createPillBtn(x, y, text, onClick, width = 150) {
+    const btn = this.scene.add.container(x, y);
+
+    const shadow = this.scene.add.graphics();
+    shadow.fillStyle(0xE3D0F5, 1);
+    shadow.fillRoundedRect(-width / 2, -14, width, 30, 15);
     btn.add(shadow);
 
     const bg = this.scene.add.graphics();
     bg.fillStyle(0xFFFFFF, 1);
-    bg.fillRoundedRect(-80, -16, 160, 32, 16);
+    bg.fillRoundedRect(-width / 2, -16, width, 30, 15);
     btn.add(bg);
 
-    const label = this.scene.add.text(0, 0, text, {
+    const label = this.scene.add.text(0, -1, text, {
       fontFamily: 'Fredoka, sans-serif',
-      fontSize: '15px',
+      fontSize: '14px',
       fontWeight: '600',
       color: COLORS.ink
     }).setOrigin(0.5);
     btn.add(label);
 
-    btn.setSize(160, 32);
-    btn.setInteractive(new Phaser.Geom.Rectangle(-80, -16, 160, 32), Phaser.Geom.Rectangle.Contains);
+    btn.setSize(width, 30);
+    btn.setInteractive(new Phaser.Geom.Rectangle(-width / 2, -16, width, 30), Phaser.Geom.Rectangle.Contains);
     btn.input.cursor = 'pointer';
     btn.on('pointerdown', () => {
       audioManager.playButtonClick();
@@ -144,21 +224,40 @@ export class SettingsMenu extends Phaser.GameObjects.Container {
     return btn;
   }
 
+  updateTexts() {
+    this.soundToggleText.setText(`Sound FX: ${audioManager.isSoundEnabled() ? 'ON' : 'OFF'} (${Math.round(audioManager.getSFXVolume() * 100)}%)`);
+    this.musicToggleText.setText(`Music: ${audioManager.isMusicEnabled() ? 'ON' : 'OFF'} (${Math.round(audioManager.getMusicVolume() * 100)}%)`);
+    this.vibToggleText.setText(`Haptic Feedback: ${saveManager.getVibrationEnabled() ? 'ON' : 'OFF'}`);
+    this.motionToggleText.setText(`Reduced Motion: ${saveManager.getReducedMotion() ? 'ON' : 'OFF'}`);
+  }
+
   show() {
-    this.soundToggleText.setText(`Sound FX: ${audioManager.isSoundEnabled() ? 'ON' : 'OFF'}`);
-    this.musicToggleText.setText(`Music: ${audioManager.isMusicEnabled() ? 'ON' : 'OFF'}`);
-    this.vibToggleText.setText(`Vibration: ${saveManager.getVibrationEnabled() ? 'ON' : 'OFF'}`);
+    this.updateTexts();
     this.setVisible(true);
     this.dialog.setScale(0.85);
+    this.dialog.setAlpha(0);
+
     this.scene.tweens.add({
       targets: this.dialog,
-      scale: 1,
-      duration: 180,
+      scaleX: 1,
+      scaleY: 1,
+      alpha: 1,
+      duration: 200,
       ease: 'Back.easeOut'
     });
   }
 
   hide() {
-    this.setVisible(false);
+    this.scene.tweens.add({
+      targets: this.dialog,
+      scaleX: 0.9,
+      scaleY: 0.9,
+      alpha: 0,
+      duration: 150,
+      ease: 'Quad.easeIn',
+      onComplete: () => {
+        this.setVisible(false);
+      }
+    });
   }
 }

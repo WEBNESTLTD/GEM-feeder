@@ -1,10 +1,32 @@
 # Gem Feeder — Casual 2D Candy-Throwing Browser Game
+## Phase 11: Premium Visuals, Realistic Gameplay, Character Animation & Commercial UI
 
-A casual 2D candy-throwing browser game built with **Phaser.js 3.90**, **HTML5/CSS3**, **Phaser Arcade Physics**, **Web Audio API**, and **LocalStorage**.
+A commercial-grade casual 2D candy-throwing browser game built with **Phaser.js 3.90**, **HTML5/CSS3**, **Phaser Arcade Physics**, **Web Audio API**, and **LocalStorage**.
 
 ---
 
 ## 🎮 Gameplay & Features
+
+### 🌟 Phase 11 Premium Upgrades
+- **Layered Parallax Environments:** Dynamic 3-layer backdrops per world:
+  - *World 1 (Candy Garden):* Peach/rose morning sunrise gradient, rolling hills, blooming flowers, and floating clouds.
+  - *World 2 (Sugar Mountain):* Crisp winter alpine sky, snowcapped jagged peaks, frosted sugar pines, and drifting snow motes.
+  - *World 3 (Chocolate Kingdom):* Twilight purple/caramel gradient, dark chocolate spires, and golden floating embers.
+- **Object-Pooled Particle Engine:** Pre-allocated 80-particle pool producing zero runtime garbage collection during rapid catches, misses, coin collections, and confetti celebrations.
+- **Authoritative Trajectory Physics:** 1:1 mathematical parity between aiming preview dots and physical arcade velocity integration, factoring in Slowmo timescale (0.55x), Magnet attraction, and wind.
+- **Expressive Character Animations:**
+  - Procedural eyelid blinking cycles (every 3.2–5.2s) without altering original artwork.
+  - Mouth and eye anticipation when aiming upward or when candy approaches mouth zone.
+  - Emotive reaction badges: sparkling stars on golden perfect hits, sweat drop on miss, and royal crown on victory.
+- **Dynamic Candy Polish:** Soft elliptical ground shadow scaling with altitude, glossy 3D specular highlight, and velocity-aligned squash and stretch.
+- **Multi-Bus Audio Gain Staging:**
+  - Independent gain staging for Master, Music, and Sound FX buses.
+  - Stepped volume level controls (`[-]` and `[+]`) in Settings Menu.
+  - Richer procedural synthesizers: tactile grab click, launch whoosh, crunchy chew, golden bell chime, miss thud, and victory fanfare.
+- **Commercial UI & Navigation:**
+  - Settings Modal with volume steppers, haptic toggle, and reduced motion switch.
+  - Tutorial Scene with top-left Back button and animated step cards.
+  - Responsive multi-viewport layouts tested from 375px mobile to 1440px desktop.
 
 ### 🌟 Game Modes
 - **Campaign Mode (Progression):** 30 handcrafted levels spanning 3 vibrant worlds:

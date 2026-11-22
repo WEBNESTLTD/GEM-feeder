@@ -1,6 +1,7 @@
 import { COLORS } from '../config/gameConfig.js';
 import { saveManager } from '../storage/SaveManager.js';
 import { audioManager } from '../systems/AudioManager.js';
+import { EnvironmentManager } from '../systems/EnvironmentManager.js';
 import { SettingsMenu } from '../ui/SettingsMenu.js';
 
 export class HomeScene extends Phaser.Scene {
@@ -9,8 +10,11 @@ export class HomeScene extends Phaser.Scene {
   }
 
   create() {
-    // Background
-    this.add.image(195, 422, 'pastel_bg');
+    // Layered Animated Parallax Environment
+    this.environmentManager = new EnvironmentManager(this, {
+      worldId: 'world_1',
+      reducedMotion: saveManager.getReducedMotion()
+    });
 
     // Background decorative candy circles (matching reference)
     this.createDecorations();
@@ -21,6 +25,31 @@ export class HomeScene extends Phaser.Scene {
     // Center character portrait illustration (width: 280, height: 325)
     this.character = this.add.image(195, 362, 'mouth_0');
     this.character.setDisplaySize(280, 325);
+
+    const equipped = saveManager.getEquipped();
+    if (equipped.accessory === 'acc_glasses') {
+      const glasses = this.add.text(195, 305, '👓', { fontSize: '42px' }).setOrigin(0.5);
+      glasses.setDepth(10);
+      this.tweens.add({
+        targets: glasses,
+        y: 299,
+        duration: 1800,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+    } else if (equipped.outfit === 'outfit_royal') {
+      const crown = this.add.text(195, 230, '👑', { fontSize: '40px' }).setOrigin(0.5);
+      crown.setDepth(10);
+      this.tweens.add({
+        targets: crown,
+        y: 224,
+        duration: 1800,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+    }
 
     // Idle floating animation
     this.tweens.add({
@@ -434,5 +463,11 @@ export class HomeScene extends Phaser.Scene {
       color: COLORS.ink
     }).setOrigin(0.5);
     bestContainer.add(val);
+  }
+
+  update(time, delta) {
+    if (this.environmentManager) {
+      this.environmentManager.update(time, delta);
+    }
   }
 }

@@ -44,10 +44,12 @@ export class WorldSelectScene extends Phaser.Scene {
     statsPill.add(statsText);
 
     // 3 World Cards
+    this.worldCards = [];
     const worldsList = levelManager.getAllWorlds();
     worldsList.forEach((world, idx) => {
       const y = 220 + (idx * 180);
-      this.createWorldCard(195, y, world);
+      const card = this.createWorldCard(195, y, world);
+      this.worldCards.push(card);
     });
 
     // Back to Home Button
