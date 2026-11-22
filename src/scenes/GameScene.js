@@ -94,7 +94,7 @@ export class GameScene extends Phaser.Scene {
         const activated = this.powerUpManager.activatePowerUp(type);
         if (activated) {
           audioManager.playPowerUpActivate();
-          this.showFloatingPopup(195, 411, `Activated ${type.toUpperCase()}!`, 0x38C964);
+          this.showFloatingPopup(195, 480, `Activated ${type.toUpperCase()}!`, 0x38C964);
         }
       }
     });
@@ -153,15 +153,18 @@ export class GameScene extends Phaser.Scene {
       const candy = this.spawner.getActiveCandy();
       if (!candy || candy.isFlying) return;
 
-      // Check if tap was on or near the ready candy (radius 60)
+      // Check if tap was on or near the ready candy (radius ~45)
       const dist = Math.hypot(pointer.x - candy.x, pointer.y - candy.y);
-      if (dist <= 75) {
+      if (dist <= 65) {
         this.isPointerDown = true;
         this.pointerStartX = pointer.x;
         this.pointerStartY = pointer.y;
         this.pointerStartTime = this.time.now;
         audioManager.playPickup();
         this.character.setAnticipation(true);
+        if (this.hud) {
+          this.hud.dismissGuidance();
+        }
       }
     });
 
@@ -387,9 +390,27 @@ export class GameScene extends Phaser.Scene {
       audioManager.triggerHaptic([35, 40]);
     }
 
-    // Crunchy munch chewing sound
+    // Crunchy munch chewing sound & tactile chomp
+    audioManager.playChomp();
     audioManager.playCrunch();
 
+    // Brief juicy impact flash ring at mouth zone
+    const flash = this.add.graphics();
+    flash.lineStyle(3, isPerfect ? 0xFFD93D : 0xFFFFFF, 0.95);
+    if (flash.strokeCircle) {
+      flash.strokeCircle(candy.x, candy.y, 16);
+    }
+    flash.setDepth(25);
+    this.tweens.add({
+      targets: flash,
+      scale: 2.2,
+      alpha: 0,
+      duration: 160,
+      ease: 'Quad.easeOut',
+      onComplete: () => flash.destroy()
+    });
+
+    // Flash impact complete, camera remains completely stable without zooming
     // Combo system update
     const comboInfo = this.comboManager.registerHit();
     this.hud.showCombo(comboInfo.multiplier);
@@ -566,33 +587,50 @@ export class GameScene extends Phaser.Scene {
   showFloatingPopup(x, y, text, colorHex) {
     const container = this.add.container(x, y);
 
-    const shadow = this.add.text(1, 1, text, {
-      fontFamily: 'Fredoka, sans-serif',
-      fontSize: '22px',
-      fontWeight: '700',
-      color: '#FFFFFF',
-      stroke: '#3E1675',
-      strokeThickness: 5
-    }).setOrigin(0.5);
-    container.add(shadow);
+    // Glossy arcade badge background
+    const badge = this.add.graphics();
+    const isGold = colorHex === 0xD81B7A;
+    const textWidth = Math.max(76, text.length * 12 + 24);
+
+    badge.fillStyle(0x2D1452, 0.35);
+    badge.fillRoundedRect(-textWidth / 2, -14, textWidth, 32, 16);
+    badge.fillStyle(isGold ? 0xD81B7A : 0x461C7C, 0.95);
+    badge.fillRoundedRect(-textWidth / 2, -16, textWidth, 32, 16);
+    badge.fillStyle(0xFFFFFF, 0.28);
+    badge.fillRoundedRect(-textWidth / 2 + 3, -15, textWidth - 6, 12, 6);
+    badge.lineStyle(2, isGold ? 0xFFD93D : 0xEBD4C0, 0.95);
+    if (badge.strokeRoundedRect) {
+      badge.strokeRoundedRect(-textWidth / 2, -16, textWidth, 32, 16);
+    }
+    container.add(badge);
 
     const label = this.add.text(0, 0, text, {
       fontFamily: 'Fredoka, sans-serif',
-      fontSize: '22px',
+      fontSize: '20px',
       fontWeight: '700',
-      color: colorHex === 0xD81B7A ? '#FFD93D' : '#FFFFFF'
+      color: isGold ? '#FFD93D' : '#FFFFFF',
+      resolution: 2
     }).setOrigin(0.5);
     container.add(label);
 
     container.setDepth(50);
+    container.setScale(0.7);
     this.tweens.add({
       targets: container,
-      y: y - 45,
-      alpha: 0,
-      scale: 1.25,
-      duration: 750,
-      ease: 'Quad.easeOut',
-      onComplete: () => container.destroy()
+      scale: 1.15,
+      duration: 120,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        this.tweens.add({
+          targets: container,
+          y: y - 48,
+          alpha: 0,
+          scale: 0.95,
+          duration: 550,
+          ease: 'Quad.easeIn',
+          onComplete: () => container.destroy()
+        });
+      }
     });
   }
 

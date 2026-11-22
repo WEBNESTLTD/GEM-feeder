@@ -36,7 +36,7 @@ export class PreloadScene extends Phaser.Scene {
     }
 
     // 3. Load UI SVGs
-    this.load.svg('packet_ui', './assets/ui/packet.svg', { width: 360, height: 255 });
+    this.load.svg('packet_ui', './assets/ui/packet.svg', { width: 480, height: 360 });
     this.load.svg('heart_full', './assets/ui/heart_full.svg', { width: 48, height: 48 });
     this.load.svg('heart_empty', './assets/ui/heart_empty.svg', { width: 48, height: 48 });
     this.load.svg('play_icon', './assets/ui/play.svg', { width: 48, height: 48 });
@@ -46,15 +46,15 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   create() {
-    // Generate reusable gradient texture for vertical pastel background
-    const bgCanvas = this.textures.createCanvas('pastel_bg', 390, 844);
+    // Generate high-resolution gradient texture for vertical pastel background (780x1688 for high-DPI crispness)
+    const bgCanvas = this.textures.createCanvas('pastel_bg', 780, 1688);
     const ctx = bgCanvas.getContext();
-    const grad = ctx.createLinearGradient(0, 0, 0, 844);
+    const grad = ctx.createLinearGradient(0, 0, 0, 1688);
     grad.addColorStop(0, '#F3E6FF');
     grad.addColorStop(0.55, '#FFE9F3');
     grad.addColorStop(1, '#FFF3D6');
     ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 390, 844);
+    ctx.fillRect(0, 0, 780, 1688);
     bgCanvas.refresh();
 
     this.scene.start('HomeScene');

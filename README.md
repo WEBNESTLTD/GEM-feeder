@@ -1,7 +1,12 @@
 # Gem Feeder — Casual 2D Candy-Throwing Browser Game
 ## Phase 11: Premium Visuals, Realistic Gameplay, Character Animation & Commercial UI
 
-A commercial-grade casual 2D candy-throwing browser game built with **Phaser.js 3.90**, **HTML5/CSS3**, **Phaser Arcade Physics**, **Web Audio API**, and **LocalStorage**.
+A commercial-grade casual 2D candy-throwing browser game built with **Phaser.js 3.90.0**, **HTML5/CSS3**, **Phaser Arcade Physics**, **Web Audio API**, and **LocalStorage**.
+
+### ⚙️ Engine Runtime & Vendor Architecture
+- **Engine Version:** **Phaser 3.90.0** (pinned exactly in `package.json` without carets).
+- **Vendor Loading:** The browser runtime loads Phaser directly from `./vendor/phaser.min.js` via `<script src="./vendor/phaser.min.js"></script>` in `index.html`. This ensures instantaneous startup without bundler overhead or runtime resolution delays.
+- **Checksum Parity:** `vendor/phaser.min.js` is bit-for-bit identical to `node_modules/phaser/dist/phaser.min.js` (SHA256: `E92DDEF111BA42E92D316979C732311757093688EA1810591CB7AA2858EBA7A7`). Automated tests (`tests/version.test.js`) enforce that `package.json`, `package-lock.json`, and `vendor/phaser.min.js` strictly match version `3.90.0`.
 
 ---
 
@@ -101,7 +106,9 @@ gem-feeder/
 │   ├── design-tokens.json  # Logical dimensions (390x844), colors, radii
 │   └── reference/          # Reference layout files
 ├── dist/               # Standalone production build
-├── screenshots/        # Visual verification screenshots across all modes & viewports
+├── docs/               # Project documentation, architecture & reports
+│   ├── reports/        # Phase reports, audits, and checklists
+│   └── screenshots/    # Visual verification screenshots across all modes & viewports
 ├── src/
 │   ├── config/
 │   │   ├── gameConfig.js   # Game dimensions, scoring rules, physics constants

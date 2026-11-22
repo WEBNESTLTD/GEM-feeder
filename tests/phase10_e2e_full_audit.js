@@ -22,8 +22,8 @@ async function runPhase10FullAudit() {
   console.log('  STARTING PHASE 10.1 INDEPENDENT ACCEPTANCE AUDIT & E2E SUITE  ');
   console.log('================================================================');
 
-  if (!fs.existsSync('screenshots')) {
-    fs.mkdirSync('screenshots', { recursive: true });
+  if (!fs.existsSync('docs/screenshots')) {
+    fs.mkdirSync('docs/screenshots', { recursive: true });
   }
 
   const browser = await chromium.launch({
@@ -88,7 +88,7 @@ async function runPhase10FullAudit() {
     Boolean(homeCanvas)
   );
 
-  await page.screenshot({ path: 'screenshots/phase10_home_upgraded.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase10_home_upgraded.png' });
 
   // --- SCENARIO 2: WORLD SELECTION SCENE ---
   console.log('\n--- Scenario 2: World Selection Scene ---');
@@ -111,7 +111,7 @@ async function runPhase10FullAudit() {
     worldState.isActive ? 'Active and rendered' : 'Inactive',
     worldState.isActive
   );
-  await page.screenshot({ path: 'screenshots/phase10_world_select.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase10_world_select.png' });
 
   // --- SCENARIO 3: LEVEL SELECTION SCENE (WORLD 1) ---
   console.log('\n--- Scenario 3: Level Selection Scene (World 1) ---');
@@ -134,7 +134,7 @@ async function runPhase10FullAudit() {
     `Active: ${levelSelectState.isActive}, worldId: ${levelSelectState.worldId}`,
     levelSelectState.isActive && levelSelectState.worldId === 'world_1'
   );
-  await page.screenshot({ path: 'screenshots/phase10_level_select.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase10_level_select.png' });
 
   // --- SCENARIO 4: LEVEL INTRO MODAL ---
   console.log('\n--- Scenario 4: Level Intro Modal ---');
@@ -163,7 +163,7 @@ async function runPhase10FullAudit() {
     introModalState ? 'Modal visible' : 'Modal hidden',
     Boolean(introModalState)
   );
-  await page.screenshot({ path: 'screenshots/phase10_level_intro.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase10_level_intro.png' });
 
   // --- SCENARIO 5: GAMEPLAY LEVEL MODE & POWER-UPS ---
   console.log('\n--- Scenario 5: Level Gameplay & Power-Up Verification ---');
@@ -189,7 +189,7 @@ async function runPhase10FullAudit() {
     `Level: ${gameplayState.levelId}, Target: ${gameplayState.targetScore}`,
     gameplayState.isActive && gameplayState.levelId === 1 && gameplayState.targetScore === 75
   );
-  await page.screenshot({ path: 'screenshots/phase10_gameplay_level_mode.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase10_gameplay_level_mode.png' });
 
   // Test Power-Ups Activation & Physics hooks
   const powerUpTests = await page.evaluate(() => {
@@ -306,7 +306,7 @@ async function runPhase10FullAudit() {
     completeModalState ? 'Modal visible' : 'Modal hidden',
     Boolean(completeModalState)
   );
-  await page.screenshot({ path: 'screenshots/phase10_level_complete.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase10_level_complete.png' });
 
   // --- SCENARIO 8: LEVEL FAILURE MODAL ---
   console.log('\n--- Scenario 8: Level Failure Modal ---');
@@ -342,7 +342,7 @@ async function runPhase10FullAudit() {
   });
   await page.waitForTimeout(600);
 
-  await page.screenshot({ path: 'screenshots/phase10_shop_powerups.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase10_shop_powerups.png' });
 
   // Switch to wardrobe tab
   await page.evaluate(() => {
@@ -368,7 +368,7 @@ async function runPhase10FullAudit() {
     `Tab: ${shopState.tab}`,
     shopState.isActive && shopState.tab === 'wardrobe'
   );
-  await page.screenshot({ path: 'screenshots/phase10_shop_wardrobe.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase10_shop_wardrobe.png' });
 
   // --- SCENARIO 10: MISSIONS & ACHIEVEMENTS ---
   console.log('\n--- Scenario 10: Missions & Achievements ---');
@@ -377,7 +377,7 @@ async function runPhase10FullAudit() {
   });
   await page.waitForTimeout(600);
 
-  await page.screenshot({ path: 'screenshots/phase10_missions_quests.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase10_missions_quests.png' });
 
   // Switch to achievements tab
   await page.evaluate(() => {
@@ -403,7 +403,7 @@ async function runPhase10FullAudit() {
     `Tab: ${missionState.tab}`,
     missionState.isActive && missionState.tab === 'achievements'
   );
-  await page.screenshot({ path: 'screenshots/phase10_missions_achievements.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase10_missions_achievements.png' });
 
   // --- SCENARIO 11: RELOAD PERSISTENCE ---
   console.log('\n--- Scenario 11: Reload Persistence ---');

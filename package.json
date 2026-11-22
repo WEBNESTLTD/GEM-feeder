@@ -9,6 +9,6 @@
     "test": "node --test tests/**/*.test.js"
   },
   "dependencies": {
-    "phaser": "^3.90.0"
+    "phaser": "3.90.0"
   }
 }

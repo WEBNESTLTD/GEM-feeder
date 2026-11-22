@@ -19,8 +19,8 @@ try {
 
 async function runPhase11Verification() {
   console.log('--- Phase 11 Visual QA & Multi-Viewport Verification ---');
-  if (!fs.existsSync('screenshots')) {
-    fs.mkdirSync('screenshots', { recursive: true });
+  if (!fs.existsSync('docs/screenshots')) {
+    fs.mkdirSync('docs/screenshots', { recursive: true });
   }
 
   const browser = await chromium.launch({ headless: true, channel: 'chrome' });
@@ -59,7 +59,7 @@ async function runPhase11Verification() {
 
   // 1. Home Screen
   console.log('Capturing Phase 11 Home Screen...');
-  await page.screenshot({ path: 'screenshots/phase11_home_390x844.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase11_home_390x844.png' });
 
   // 2. Open Settings Menu
   console.log('Capturing Phase 11 Settings Modal with Volume Gain Sliders...');
@@ -71,7 +71,7 @@ async function runPhase11Verification() {
     }
   });
   await page.waitForTimeout(400);
-  await page.screenshot({ path: 'screenshots/phase11_settings_modal.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase11_settings_modal.png' });
 
   // Close Settings Menu
   await page.evaluate(() => {
@@ -90,7 +90,7 @@ async function runPhase11Verification() {
     game.scene.start('TutorialScene');
   });
   await page.waitForTimeout(600);
-  await page.screenshot({ path: 'screenshots/phase11_tutorial_390x844.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase11_tutorial_390x844.png' });
 
   // 4. World 1 Gameplay (Candy Garden)
   console.log('Capturing World 1 (Candy Garden) Gameplay...');
@@ -106,7 +106,7 @@ async function runPhase11Verification() {
   await page.waitForTimeout(50);
   await page.mouse.move(195, 520, { steps: 5 });
   await page.waitForTimeout(100);
-  await page.screenshot({ path: 'screenshots/phase11_gameplay_world1_aiming.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase11_gameplay_world1_aiming.png' });
   await page.mouse.up();
   await page.waitForTimeout(600);
 
@@ -117,7 +117,7 @@ async function runPhase11Verification() {
     game.scene.start('GameScene', { levelId: 11 }); // Level 11 is World 2
   });
   await page.waitForTimeout(800);
-  await page.screenshot({ path: 'screenshots/phase11_gameplay_world2_sugar_mountain.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase11_gameplay_world2_sugar_mountain.png' });
 
   // 6. World 3 Gameplay (Chocolate Kingdom)
   console.log('Capturing World 3 (Chocolate Kingdom) Gameplay with Caramel Pillars...');
@@ -126,7 +126,7 @@ async function runPhase11Verification() {
     game.scene.start('GameScene', { levelId: 21 }); // Level 21 is World 3
   });
   await page.waitForTimeout(800);
-  await page.screenshot({ path: 'screenshots/phase11_gameplay_world3_chocolate_kingdom.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase11_gameplay_world3_chocolate_kingdom.png' });
 
   // 7. Level Complete Modal
   console.log('Capturing Level Complete Modal with 3 Stars and Victory Fanfare...');
@@ -144,7 +144,7 @@ async function runPhase11Verification() {
     }
   });
   await page.waitForTimeout(500);
-  await page.screenshot({ path: 'screenshots/phase11_level_complete_modal.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase11_level_complete_modal.png' });
 
   await context.close();
 

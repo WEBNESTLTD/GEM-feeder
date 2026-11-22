@@ -22,8 +22,8 @@ async function runPhase11_1Audit() {
   console.log('  GEM FEEDER — PHASE 11.1 INDEPENDENT ACCEPTANCE AUDIT & E2E   ');
   console.log('================================================================');
 
-  if (!fs.existsSync('screenshots')) {
-    fs.mkdirSync('screenshots', { recursive: true });
+  if (!fs.existsSync('docs/screenshots')) {
+    fs.mkdirSync('docs/screenshots', { recursive: true });
   }
 
   const browser = await chromium.launch({
@@ -97,7 +97,7 @@ async function runPhase11_1Audit() {
       hasPlayBtn: Boolean(hs && hs.playButton)
     };
   });
-  await page.screenshot({ path: 'screenshots/phase11_audit_01_home_screen.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase11_audit_01_home_screen.png' });
   record(
     1,
     'Home Screen Loading',
@@ -247,7 +247,7 @@ async function runPhase11_1Audit() {
       hasBackButton: Boolean(ts && ts.backButton)
     };
   });
-  await page.screenshot({ path: 'screenshots/phase11_audit_07_tutorial.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase11_audit_07_tutorial.png' });
   record(
     7,
     'Tutorial Navigation',
@@ -272,7 +272,7 @@ async function runPhase11_1Audit() {
       hasHeader: Boolean(ws && ws.titleText)
     };
   });
-  await page.screenshot({ path: 'screenshots/phase11_audit_08_world_select.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase11_audit_08_world_select.png' });
   record(
     8,
     'Campaign World Selection',
@@ -297,7 +297,7 @@ async function runPhase11_1Audit() {
       buttonsCount: ls && ls.levelButtons ? ls.levelButtons.length : 0
     };
   });
-  await page.screenshot({ path: 'screenshots/phase11_audit_09_level_select.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase11_audit_09_level_select.png' });
   record(
     9,
     'Level Selection Grid',
@@ -663,7 +663,7 @@ async function runPhase11_1Audit() {
       hasNextBtn: Boolean(gs.levelCompleteModal.nextBtn)
     };
   });
-  await page.screenshot({ path: 'screenshots/phase11_audit_21_level_completion.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase11_audit_21_level_completion.png' });
   record(
     21,
     'Level Completion Victory Modal',
@@ -693,7 +693,7 @@ async function runPhase11_1Audit() {
       isGameSceneStopped: !gs.scene.isActive()
     };
   });
-  await page.screenshot({ path: 'screenshots/phase11_audit_22_game_over.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase11_audit_22_game_over.png' });
   record(
     22,
     'Game Over Lifecycle',
@@ -779,7 +779,7 @@ async function runPhase11_1Audit() {
       hasWardrobeBtn
     };
   });
-  await page.screenshot({ path: 'screenshots/phase11_audit_25_shop_wardrobe.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase11_audit_25_shop_wardrobe.png' });
   record(
     25,
     'Shop & Wardrobe Regression',
@@ -806,7 +806,7 @@ async function runPhase11_1Audit() {
       missionsCount: missions.length
     };
   });
-  await page.screenshot({ path: 'screenshots/phase11_audit_26_daily_missions.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase11_audit_26_daily_missions.png' });
   record(
     26,
     'Daily Missions Regression',
@@ -831,7 +831,7 @@ async function runPhase11_1Audit() {
       totalAchievements: achievements.length
     };
   });
-  await page.screenshot({ path: 'screenshots/phase11_audit_27_achievements.png' });
+  await page.screenshot({ path: 'docs/screenshots/phase11_audit_27_achievements.png' });
   record(
     27,
     'Achievements Regression',
@@ -920,7 +920,7 @@ async function runPhase11_1Audit() {
   for (const vp of viewports) {
     await page.setViewportSize({ width: vp.width, height: vp.height });
     await page.waitForTimeout(300);
-    const vpFile = `screenshots/phase11_audit_30_viewport_${vp.name}.png`;
+    const vpFile = `docs/screenshots/phase11_audit_30_viewport_${vp.name}.png`;
     await page.screenshot({ path: vpFile });
 
     const layoutCheck = await page.evaluate(() => {
@@ -978,7 +978,7 @@ async function runPhase11_1Audit() {
   await browser.close();
 
   // Write full audit result report to JSON
-  fs.writeFileSync('phase11_1_e2e_results.json', JSON.stringify({
+  fs.writeFileSync('docs/reports/phase11_1_e2e_results.json', JSON.stringify({
     timestamp: new Date().toISOString(),
     totalScenarios: auditResults.length,
     passed: auditResults.filter(r => r.status === 'PASS').length,

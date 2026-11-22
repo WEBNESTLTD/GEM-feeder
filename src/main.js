@@ -30,6 +30,12 @@ const config = {
     target: 60,
     forceSetTimeOut: true
   },
+  render: {
+    antialias: true,
+    antialiasGL: true,
+    roundPixels: false,
+    powerPreference: 'high-performance'
+  },
   backgroundColor: '#2D1452',
   scene: [
     BootScene,

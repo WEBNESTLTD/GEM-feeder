@@ -9,6 +9,7 @@ export class Character extends Phaser.GameObjects.Container {
     this.sprite = scene.add.image(0, 0, 'mouth_0');
     this.sprite.setDisplaySize(300, 349);
     this.add(this.sprite);
+    this.setDepth(2); // Character stands behind the foreground candy-shop counter (depth 3)
 
     // 2. Procedural Eyelids for Natural Blinking
     this.eyelids = scene.add.graphics();
@@ -17,13 +18,15 @@ export class Character extends Phaser.GameObjects.Container {
 
     // 3. Emotive Expression Overlay (Sweat drop on miss, sparkles on perfect)
     this.emotionIcon = scene.add.text(50, -80, '', {
-      fontSize: '28px'
+      fontSize: '28px',
+      resolution: 2
     }).setOrigin(0.5);
     this.add(this.emotionIcon);
 
     // 4. Accessory overlay container
     this.accessoryText = scene.add.text(0, -130, '', {
-      fontSize: '48px'
+      fontSize: '48px',
+      resolution: 2
     }).setOrigin(0.5);
     this.add(this.accessoryText);
 
@@ -73,8 +76,17 @@ export class Character extends Phaser.GameObjects.Container {
 
     // Dark eyelash lines
     this.eyelids.lineStyle(2.5, 0x3D1E47, 1);
-    this.eyelids.strokeRoundedRect(-52, -50, 38, 2, 1);
-    this.eyelids.strokeRoundedRect(14, -50, 38, 2, 1);
+    if (this.eyelids.strokeRoundedRect) {
+      this.eyelids.strokeRoundedRect(-52, -50, 38, 2, 1);
+      this.eyelids.strokeRoundedRect(14, -50, 38, 2, 1);
+    } else if (this.eyelids.beginPath) {
+      this.eyelids.beginPath();
+      this.eyelids.moveTo(-52, -50);
+      this.eyelids.lineTo(-14, -50);
+      this.eyelids.moveTo(14, -50);
+      this.eyelids.lineTo(52, -50);
+      this.eyelids.strokePath();
+    }
 
     this.eyelids.setVisible(true);
 
@@ -114,6 +126,7 @@ export class Character extends Phaser.GameObjects.Container {
     const clamped = Math.max(0, Math.min(8, Math.round(index)));
     this.currentFrameIndex = clamped;
     this.sprite.setTexture(`mouth_${clamped}`);
+    this.sprite.setDisplaySize(300, 349);
   }
 
   setAnticipation(active) {
@@ -143,12 +156,15 @@ export class Character extends Phaser.GameObjects.Container {
     this.isDisappointed = false;
     this.emotionIcon.setText('');
 
+    // Ensure display size is strictly locked at 300x349
+    this.sprite.setDisplaySize(300, 349);
+
     // Frame sequence: 8 -> 6 -> 4 -> 1 -> 0 -> 3 -> 0 (eating chew)
     const chewSequence = [8, 6, 4, 1, 0, 3, 0];
     let step = 0;
 
     const chewTimer = this.scene.time.addEvent({
-      delay: 70,
+      delay: 75,
       repeat: chewSequence.length - 1,
       callback: () => {
         this.setMouthFrame(chewSequence[step]);
@@ -156,23 +172,11 @@ export class Character extends Phaser.GameObjects.Container {
         if (step >= chewSequence.length) {
           this.isChewing = false;
           this.setMouthFrame(0);
+          this.sprite.setDisplaySize(300, 349);
           if (onComplete) onComplete();
         }
       }
     });
-
-    // Happy character bounce
-    if (!saveManager.getReducedMotion()) {
-      this.scene.tweens.add({
-        targets: this.sprite,
-        scaleX: 1.05,
-        scaleY: 0.95,
-        duration: 120,
-        yoyo: true,
-        repeat: 2,
-        ease: 'Quad.easeOut'
-      });
-    }
   }
 
   playCelebrationAnimation() {
@@ -182,18 +186,18 @@ export class Character extends Phaser.GameObjects.Container {
     this.setMouthFrame(8);
     this.emotionIcon.setText('✨');
 
-    // Triumphant double hop
+    // Triumphant double hop (vertical hop only, NO zooming in and out)
     if (!saveManager.getReducedMotion()) {
       this.scene.tweens.add({
         targets: this.sprite,
-        y: -22,
-        scaleX: 1.09,
-        scaleY: 0.91,
-        duration: 140,
+        y: -14,
+        duration: 120,
         yoyo: true,
-        repeat: 2,
-        ease: 'Back.easeOut',
+        repeat: 1,
+        ease: 'Quad.easeOut',
         onComplete: () => {
+          this.sprite.y = 0;
+          this.sprite.setDisplaySize(300, 349);
           this.emotionIcon.setText('');
           this.playEatingAnimation();
         }
@@ -213,14 +217,15 @@ export class Character extends Phaser.GameObjects.Container {
     if (!saveManager.getReducedMotion()) {
       this.scene.tweens.add({
         targets: this.sprite,
-        y: 12,
-        rotation: 0.04,
+        y: 8,
+        rotation: 0.03,
         duration: 250,
         yoyo: true,
         ease: 'Sine.easeOut',
         onComplete: () => {
           this.sprite.y = 0;
           this.sprite.rotation = 0;
+          this.sprite.setDisplaySize(300, 349);
           this.isDisappointed = false;
           this.emotionIcon.setText('');
         }
@@ -258,9 +263,7 @@ export class Character extends Phaser.GameObjects.Container {
     if (!saveManager.getReducedMotion()) {
       this.scene.tweens.add({
         targets: this.sprite,
-        y: -15,
-        scaleX: 1.06,
-        scaleY: 0.94,
+        y: -12,
         duration: 250,
         yoyo: true,
         repeat: -1,
@@ -279,7 +282,9 @@ export class Character extends Phaser.GameObjects.Container {
       this.aimTween.stop();
       this.aimTween = null;
     }
+    this.sprite.y = 0;
     this.sprite.rotation = 0;
+    this.sprite.setDisplaySize(300, 349);
   }
 
   trackAim(pointerX, pointerY) {

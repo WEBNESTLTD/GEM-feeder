@@ -9,72 +9,48 @@ export class Candy extends Phaser.GameObjects.Container {
     this.isFlying = false;
     this.isConsumed = false;
     this.flightTime = 0;
+    this.setDepth(12); // In front of packet (depth 10) and counter (depth 3)
 
-    // 1. Soft Drop Shadow (rendered behind the candy)
+    // 1. Soft Drop Shadow underneath candy
     this.shadow = scene.add.graphics();
-    this.shadow.fillStyle(0x2D1452, 0.25);
-    this.shadow.fillEllipse(0, 26, 38, 14);
+    this.shadow.fillStyle(0x2D1452, 0.22);
+    this.shadow.fillEllipse(0, 22, 32, 9);
     this.add(this.shadow);
 
-    // 2. Main Candy Sprite
+    // 2. Main Candy Button Sprite (Strictly locked to 48x48, zero zooming in/out)
     this.sprite = scene.add.image(0, 0, this.candyData.key);
-    this.sprite.setDisplaySize(60, 60);
+    this.sprite.setDisplaySize(48, 48);
     this.add(this.sprite);
-
-    // 3. Glossy Specular Highlight (subtle curved white reflection)
-    this.shine = scene.add.graphics();
-    this.shine.fillStyle(0xFFFFFF, 0.4);
-    this.shine.fillEllipse(-10, -12, 14, 7);
-    this.shine.fillCircle(-14, -14, 3);
-    this.add(this.shine);
-
-    // Subtle idle floating / breathing
-    if (!saveManager.getReducedMotion()) {
-      this.idleTween = scene.tweens.add({
-        targets: [this.sprite, this.shine],
-        scaleX: 1.05,
-        scaleY: 0.95,
-        duration: 650,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut'
-      });
-    }
 
     scene.add.existing(this);
     scene.physics.world.enable(this);
 
     this.body.setAllowGravity(false);
-    this.body.setCircle(26, -26, -26);
+    this.body.setCircle(24, -24, -24);
 
-    this.targetScaleX = 1;
-    this.targetScaleY = 1;
+    // Rock-solid stationary at spawner - ZERO idle zooming, bobbing, or scaling!
   }
 
   setSquash(scaleX, scaleY) {
-    this.sprite.setScale(scaleX, scaleY);
-    this.shine.setScale(scaleX, scaleY);
+    this.setScale(scaleX, scaleY);
     if (this.shadow) {
-      this.shadow.setScale(scaleX * 1.1, scaleY * 0.9);
-      this.shadow.setAlpha(0.25 * (2 - scaleY));
+      this.shadow.setAlpha(0.22 * (2 - scaleY));
     }
   }
 
   resetSquash() {
     this.scene.tweens.add({
-      targets: [this.sprite, this.shine],
+      targets: this,
       scaleX: 1,
       scaleY: 1,
-      duration: 140,
+      duration: 120,
       ease: 'Back.easeOut'
     });
     if (this.shadow) {
       this.scene.tweens.add({
         targets: this.shadow,
-        scaleX: 1,
-        scaleY: 1,
-        alpha: 0.25,
-        duration: 140
+        alpha: 0.22,
+        duration: 120
       });
     }
   }
@@ -82,10 +58,7 @@ export class Candy extends Phaser.GameObjects.Container {
   launch(vx, vy) {
     if (this.isFlying) return;
     this.isFlying = true;
-
-    if (this.idleTween) {
-      this.idleTween.stop();
-    }
+    this.setScale(1, 1);
 
     // Hide ground shadow upon lift-off
     if (this.shadow) {
@@ -93,20 +66,9 @@ export class Candy extends Phaser.GameObjects.Container {
         targets: this.shadow,
         alpha: 0,
         scale: 0.2,
-        duration: 180
+        duration: 150
       });
     }
-
-    // Launch stretch burst aligned to velocity
-    this.sprite.setScale(0.85, 1.25);
-    this.shine.setScale(0.85, 1.25);
-    this.scene.tweens.add({
-      targets: [this.sprite, this.shine],
-      scaleX: 1,
-      scaleY: 1,
-      duration: 220,
-      ease: 'Quad.easeOut'
-    });
 
     this.body.setAllowGravity(true);
     this.body.setGravityY(PHYSICS.GRAVITY_Y);
@@ -116,7 +78,7 @@ export class Candy extends Phaser.GameObjects.Container {
     if (!saveManager.getReducedMotion()) {
       const rotationSpeed = (vx >= 0 ? 1 : -1) * Phaser.Math.Clamp(Math.abs(vx) * 0.5 + 260, 260, 600);
       this.rotationTween = this.scene.tweens.add({
-        targets: [this.sprite, this.shine],
+        targets: this.sprite,
         angle: rotationSpeed,
         duration: 1000,
         repeat: -1,
@@ -130,15 +92,14 @@ export class Candy extends Phaser.GameObjects.Container {
 
     this.flightTime += delta;
 
-    // Slight aerodynamic elongation along velocity
+    // Aerodynamic velocity-proportional stretch on Container
     if (this.body && this.body.velocity) {
       const vx = this.body.velocity.x;
       const vy = this.body.velocity.y;
       const speed = Math.hypot(vx, vy);
-      if (speed > 200 && !saveManager.getReducedMotion()) {
-        const stretch = Math.min(1.2, 1 + (speed / 3500));
-        this.sprite.setScale(1 / stretch, stretch);
-        this.shine.setScale(1 / stretch, stretch);
+      if (speed > 250 && !saveManager.getReducedMotion()) {
+        const stretch = Math.min(1.14, 1 + (speed / 4500));
+        this.setScale(1 / stretch, stretch);
       }
     }
 
@@ -158,17 +119,27 @@ export class Candy extends Phaser.GameObjects.Container {
     }
     if (this.rotationTween) {
       this.rotationTween.stop();
+      this.rotationTween = null;
     }
 
-    // Shrink into mouth animation
+    // Delicious chomp squash-and-shrink into mouth animation
     this.scene.tweens.add({
       targets: this,
-      scale: 0.1,
-      alpha: 0,
-      duration: 160,
-      ease: 'Back.easeIn',
+      scaleX: 1.15,
+      scaleY: 0.8,
+      duration: 50,
+      ease: 'Quad.easeOut',
       onComplete: () => {
-        this.destroy();
+        this.scene.tweens.add({
+          targets: this,
+          scale: 0.05,
+          alpha: 0,
+          duration: 120,
+          ease: 'Back.easeIn',
+          onComplete: () => {
+            this.destroy();
+          }
+        });
       }
     });
   }

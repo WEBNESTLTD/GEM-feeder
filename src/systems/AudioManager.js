@@ -216,6 +216,28 @@ class SoundSynthesizer {
     } catch {}
   }
 
+  playChomp() {
+    // Juicy tactile chomp bite sound
+    if (!this.isSoundEnabled()) return;
+    this.initContext();
+    if (!this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(420, t);
+      osc.frequency.exponentialRampToValueAtTime(120, t + 0.075);
+      gain.gain.setValueAtTime(0.26, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.075);
+      osc.connect(gain);
+      if (this.sfxGain) gain.connect(this.sfxGain);
+      else gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.075);
+    } catch {}
+  }
+
   playLifeUp() {
     // Harmonious upward sparkly chime for heart restoration
     const notes = [523.25, 659.25, 783.99, 1046.5];
